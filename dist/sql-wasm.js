@@ -200,4 +200,4 @@ else if (typeof exports === 'object'){
     exports["Module"] = initSqlJs;
 }
 
-export {initSqljs}
+export {initSqlJs};
