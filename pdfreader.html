@@ -8,6 +8,9 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.13.216/build/pdf.worker.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1"></script>
 <script src="https://unpkg.com/downloadjs@1.4.7"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.css">
+
 
 <style type="text/css">
 
@@ -233,21 +236,21 @@
 </head>
 
 <body>
-
+        <div id="pdf-buttons" style="z-index: -1;">
+            <button id="pdf-prev">Previous</button>
+            <button id="pdf-next">Next</button>
+            <span id="spacer"></span>
+            <button id="new-upload-button">Select PDF</button> 
+            <button id="first-page-button">First Page</button> 
+            <button id="annotate-pdf-button">Annotate PDF</button>         
+            <button id="save-pdf-button">Save PDF</button>
+            <button id="bionic-button">Read</button> 
+            <input type='text' id="textcolor" />       
+            <input type='text' id="bgcolor" />       
+        </div>
 <button id="upload-button">Select PDF</button>
 <input type="file" id="file-to-upload" accept="application/pdf" />
-<div>
-    <div id="pdf-buttons">
-        <button id="pdf-prev">Previous</button>
-        <button id="pdf-next">Next</button>
-        <span id="spacer"></span>
-        <button id="new-upload-button">Select PDF</button> 
-        <button id="first-page-button">First Page</button> 
-        <button id="annotate-pdf-button">Annotate PDF</button>         
-        <button id="save-pdf-button">Save PDF</button>
-        <button id="bionic-button">Read</button>         
-    </div>
-</div>
+
 <div id="pdf-main-container">
 	<div id="pdf-loader">Loading document ...</div>
 	<div id="pdf-contents">
@@ -259,12 +262,19 @@
 		<div id="text-layer" class="textLayer"></div>
 		<div id="annotation-layer"></div>
 		<div id="page-loader">Loading page ...</div>
+        <div id="bionic" class="bionic">
+            No Page Text Loaded 
+            </div>
 	</div>
 </div>
-<div id="bionic" class="bionic">
-No Page Text Loaded 
-</div>
+
 <script>
+$("#textcolor").spectrum({
+    color: "#fff"
+});
+$("#bgcolor").spectrum({
+    color: "#000"
+});
 $("#bionic").hide();
 	const { degrees, PDFDocument, rgb, StandardFonts } = PDFLib
 
@@ -565,15 +575,21 @@ function showPage(page_no) {
 			});
 		});
 	});
+
+
 }
 
 // Upon click this should should trigger click on the #file-to-upload file input element
 // This is better than showing the not-good-looking file input element
 
 $("#bionic-button").on('click', function() {
-    $('#bionic, #pdf-main-container').toggle();
+    $('#bionic').toggle();
+    if($('#bionic').is(':visible')){
+            $('#pdf-canvas').css('visibility','hidden');   
+        } else {
+            $('#pdf-canvas').css('visibility','visible');   
+        }
 });
-
 
 $("#upload-button").on('click', function() {
 	$("#file-to-upload").trigger('click');
@@ -622,6 +638,11 @@ $("#pdf-prev").on('click', function() {
 $("#pdf-next").on('click', function() {
 	if(__CURRENT_PAGE != __TOTAL_PAGES)
 		showPage(++__CURRENT_PAGE);
+        if($('#bionic').is(':visible')){
+            $('#pdf-canvas').css('visibility','hidden');   
+        } else {
+            $('#pdf-canvas').css('visibility','visible');   
+        }
 });
 
 </script>
