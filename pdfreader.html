@@ -105,6 +105,7 @@
     height: 100%;
 }
 
+/*
 .textLayer {
     background-color: white;
   color: black;
@@ -123,7 +124,7 @@
   forced-color-adjust: none;
   z-index: 1;  
 }
-
+*/
 
 
 .textLayer span,
@@ -137,7 +138,6 @@
 
 .bionic span,
 .bionic br {
-  color: transpwhitearent;
   position: absolute;
   white-space: pre;
   cursor: text;
@@ -220,7 +220,6 @@
 .bionic {
   margin: -1px;
   padding: 1px;
-  background-color: white;
   z-index: 1;
   color: black;
   text-align: initial;
@@ -262,7 +261,7 @@
 		<div id="text-layer" class="textLayer"></div>
 		<div id="annotation-layer"></div>
 		<div id="page-loader">Loading page ...</div>
-        <div id="bionic" class="bionic">
+        <div id="bionic" class="bionic" width="800">
             No Page Text Loaded 
             </div>
 	</div>
@@ -270,10 +269,16 @@
 
 <script>
 $("#textcolor").spectrum({
-    color: "#fff"
+    color: "#fff",
+    change: function(color) {
+        $('body').css('background-color',  color.toHexString())
+   }
 });
 $("#bgcolor").spectrum({
-    color: "#000"
+    color: "#000",
+    change: function(color) {
+        $('.bionic').css('color',  color.toHexString())
+   }
 });
 $("#bionic").hide();
 	const { degrees, PDFDocument, rgb, StandardFonts } = PDFLib
