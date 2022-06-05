@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale = 1.0, maximum-scale = 1.0, user-scalable=no">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.13.216/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.13.216/build/pdf.worker.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1"></script>
+<script src="https://unpkg.com/downloadjs@1.4.7"></script>
+
+<style type="text/css">
+
+#upload-button {
+	width: 150px;
+	display: block;
+	margin: 20px auto;
+}
+
+#file-to-upload {
+	display: none;
+}
+
+#pdf-main-container {
+	width: 800px;
+	margin: 20px auto;
+}
+
+#pdf-loader {
+	display: none;
+	text-align: center;
+	color: #999999;
+	font-size: 13px;
+	line-height: 100px;
+	height: 100px;
+}
+
+#pdf-contents {
+	display: none;
+}
+
+#pdf-meta {
+	overflow: hidden;
+	margin: 0 0 20px 0;
+}
+
+#pdf-buttons {
+	float: left;
+}
+
+#page-count-container {
+	float: right;
+}
+
+#pdf-current-page {
+	display: inline;
+}
+
+#pdf-total-pages {
+	display: inline;
+}
+
+#pdf-canvas {
+	border: 1px solid rgba(0,0,0,0.2);
+	box-sizing: border-box;
+}
+
+#page-loader {
+	height: 100px;
+	line-height: 100px;
+	text-align: center;
+	display: none;
+	color: #999999;
+	font-size: 13px;
+}
+
+#annotation-layer { 
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	overflow: hidden;
+	opacity: 0.2;
+	line-height: 1.0;
+}
+
+#annotation-layer > section {
+	color: transparent;
+	position: absolute;
+	white-space: pre;
+	cursor: text;
+	transform-origin: 0% 0%;
+}
+
+#annotation-layer > .linkAnnotation > a {
+	position: absolute;
+    font-size: 1em;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.textLayer {
+    background-color: white;
+  color: black;
+  position: absolute;
+  text-align: initial;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  opacity: 0.2;
+  line-height: 1;
+  -webkit-text-size-adjust: none;
+     -moz-text-size-adjust: none;
+          text-size-adjust: none;
+  forced-color-adjust: none;
+  z-index: 1;  
+}
+
+
+
+.textLayer span,
+.textLayer br {
+  color: transpwhitearent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.bionic span,
+.bionic br {
+  color: transpwhitearent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.bionic span.markedContent {
+  top: 0;
+  height: 0;
+}
+
+/* Only necessary in Google Chrome, see issue 14205, and most unfortunately
+ * the problem doesn't show up in "text" reference tests. */
+.textLayer span.markedContent {
+  top: 0;
+  height: 0;
+}
+
+.textLayer .highlight {
+  margin: -1px;
+  padding: 1px;
+  background-color: rgba(180, 0, 170, 1);
+  border-radius: 4px;
+}
+
+.textLayer .highlight.appended {
+  position: initial;
+}
+
+.textLayer .highlight.begin {
+  border-radius: 4px 0 0 4px;
+}
+
+.textLayer .highlight.end {
+  border-radius: 0 4px 4px 0;
+}
+
+.textLayer .highlight.middle {
+  border-radius: 0;
+}
+
+.textLayer .highlight.selected {
+  background-color: rgba(0, 100, 0, 1);
+}
+
+.textLayer ::-moz-selection {
+  background: rgba(0, 0, 255, 1);
+}
+
+.textLayer ::selection {
+  background: rgba(0, 0, 255, 1);
+}
+
+/* Avoids https://github.com/mozilla/pdf.js/issues/13840 in Chrome */
+.textLayer br::-moz-selection {
+  background: white;
+}
+.textLayer br::selection {
+  background: white;
+}
+
+.textLayer .endOfContent {
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  cursor: default;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+}
+
+.textLayer .endOfContent.active {
+  top: 0;
+}
+
+.bionic {
+  margin: -1px;
+  padding: 1px;
+  background-color: white;
+  z-index: 1;
+  color: black;
+  text-align: initial;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  line-height: 1;
+}
+
+</style>
+</head>
+
+<body>
+
+<button id="upload-button">Select PDF</button>
+<input type="file" id="file-to-upload" accept="application/pdf" />
+<div>
+    <div id="pdf-buttons">
+        <button id="pdf-prev">Previous</button>
+        <button id="pdf-next">Next</button>
+        <span id="spacer"></span>
+        <button id="new-upload-button">Select PDF</button> 
+        <button id="first-page-button">First Page</button> 
+        <button id="annotate-pdf-button">Annotate PDF</button>         
+        <button id="save-pdf-button">Save PDF</button>
+        <button id="bionic-button">Read</button>         
+    </div>
+</div>
+<div id="pdf-main-container">
+	<div id="pdf-loader">Loading document ...</div>
+	<div id="pdf-contents">
+		<div id="pdf-meta">
+
+			<div id="page-count-container">Page <div id="pdf-current-page"></div> of <div id="pdf-total-pages"></div></div>
+		</div>
+		<canvas id="pdf-canvas" width="800"></canvas>
+		<div id="text-layer" class="textLayer"></div>
+		<div id="annotation-layer"></div>
+		<div id="page-loader">Loading page ...</div>
+	</div>
+</div>
+<div id="bionic" class="bionic">
+No Page Text Loaded 
+</div>
+<script>
+$("#bionic").hide();
+	const { degrees, PDFDocument, rgb, StandardFonts } = PDFLib
+
+  async function savePdf() {
+		// Trigger the browser to download the PDF document
+    download(__EXISTING_PDF_BYTES, "pdf-lib_modification_example.pdf", "application/pdf");
+  }
+
+	async function modifyPdf() {
+    // Load a PDFDocument from the existing PDF bytes
+    const pdfDoc = await PDFDocument.load(__EXISTING_PDF_BYTES)
+
+    // Embed the Helvetica font
+    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica)
+
+    // Get the first page of the document
+    const pages = pdfDoc.getPages()
+    const firstPage = pages[0]
+
+    // Get the width and height of the first page
+    const { width, height } = firstPage.getSize()
+
+    // Draw a timestamped string of text in random location
+		const d = new Date();
+		let h = addZero(d.getHours());
+		let m = addZero(d.getMinutes());
+		let s = addZero(d.getSeconds());
+		let time = h + ":" + m + ":" + s;
+    firstPage.drawText('PDF-Lib Annotation: ' + time, {
+      x: getRandomIntInclusive(5, 200),
+      y: getRandomIntInclusive(5, height - 100),
+      size: 20,
+      font: helveticaFont,
+      color: rgb(0.95, 0.1, 0.1),
+    })    
+    __EXISTING_PDF_BYTES = await pdfDoc.save();
+		showUpdatedPDF();    
+  }
+
+var __PDF_DOC,
+	__CURRENT_PAGE,
+	__TOTAL_PAGES,
+	__PAGE_RENDERING_IN_PROGRESS = 0,
+	__CANVAS = $('#pdf-canvas').get(0),
+	__CANVAS_CTX = __CANVAS.getContext('2d'),
+  __EXISTING_PDF_BYTES;
+
+function getRandomIntInclusive(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+function addZero(i) {
+  if (i < 10) {i = "0" + i}
+  return i;
+}
+
+function showUpdatedPDF() {
+	// $("#pdf-loader").show();
+	pdfjsLib.getDocument({ data: __EXISTING_PDF_BYTES }).promise.then(function(pdf_doc) {
+		__PDF_DOC = pdf_doc;
+		__TOTAL_PAGES = __PDF_DOC.numPages;
+		// Hide the pdf loader and show pdf container in HTML
+		$("#pdf-loader").hide();
+		$("#pdf-contents").show();
+		$("#pdf-total-pages").text(__TOTAL_PAGES);
+
+		// Show the first page
+		showPage(1);
+	}).catch(function(error) {
+		// If error re-show the upload button
+		$("#pdf-loader").hide();
+		$("#upload-button").show();
+		
+		alert(error.message);
+	});;
+}
+
+function showSelectedPDF(pdf_url) {
+	$("#pdf-loader").show();
+	pdfjsLib.getDocument({ url: pdf_url }).promise.then(function(pdf_doc) {
+		__PDF_DOC = pdf_doc;
+		__TOTAL_PAGES = __PDF_DOC.numPages;
+		__PDF_DOC.getData().then(function(pdf_data) {
+			__EXISTING_PDF_BYTES = pdf_data;
+		});
+		// Hide the pdf loader and show pdf container in HTML
+		$("#pdf-loader").hide();
+		$("#pdf-contents").show();
+		$("#pdf-total-pages").text(__TOTAL_PAGES);
+
+		// Show the first page
+		showPage(1);
+	}).catch(function(error) {
+		// If error re-show the upload button
+		$("#pdf-loader").hide();
+		$("#upload-button").show();
+		
+		alert(error.message);
+	});;
+}
+
+function ModifyTextBasic(textNodeContent) 
+{
+    return textNodeContent.split(' ').map((word) => {
+        //TODO if the user wants numbers to be bolded    
+        //if(/\d/.test(word)) return word;
+
+        
+        var boldUp2 = Math.floor(word.length/2); //TODO Add customizable length: 1/4 , 1/2 , 3/4 of a word etc..
+        return word.replace(word, `<b>${word.substring(0, boldUp2)}</b>${word.substring(boldUp2)}`);  //TODO Add customizable fonts & underline the words that are originally bolded
+    }).join(' ');
+}
+
+function ModifyTextBasic2(textNodeContent) 
+{
+    return textNodeContent.split(' ').map((word) => {
+        //TODO if the user wants numbers to be bolded    
+        //if(/\d/.test(word)) return word;
+
+        
+        var boldUp2 = Math.floor(Math.random() * Math.floor(word.length/2)); //TODO Add customizable length: 1/4 , 1/2 , 3/4 of a word etc..
+        return word.replace(word, `<b>${word.substring(0, boldUp2+1)}</b>${word.substring(boldUp2+1)}`);  //TODO Add customizable fonts & underline the words that are originally bolded
+    }).join(' ');
+}
+
+function ModifyTextSyllable(textNodeContent) 
+{
+    return textNodeContent.split(' ').map((word) => {
+        //if(/\d/.test(word)) return word;
+
+        var vowel = /[aeiouy]/i;
+        var match = vowel.exec(word);
+        if(match != null)
+            var boldUp2 = match.index;
+        return unescape(word.replace(word, `<span style="font-weight:bold">${word.substring(0, boldUp2+1)}</span>${word.substring(boldUp2+1)}`));
+    });
+}
+
+function makeWordBionic (word) {
+    let splitIndex;
+    if (word.length > 3) {
+        splitIndex = Math.ceil(word.length / 2);
+    } else if (word.length <= 3) {
+        splitIndex = 1;
+    }
+    return [word.slice(0, splitIndex), 
+            word.slice(splitIndex, word.length)];
+}
+
+function makeTextNodeBionic(textNode) {
+    const bionicNodes = [];
+    for (const word of textNode.split(" ")) {
+        let strongText, normalText;
+        [strongText, normalText] = makeWordBionic(word);
+        const strongPart = document.createElement("b");
+        strongPart.appendChild(document.createTextNode(strongText));
+        bionicNodes.push(strongPart);
+        if (normalText.length > 0) {
+            bionicNodes.push(document.createTextNode(normalText));
+        }
+        bionicNodes.push(document.createTextNode(" "));
+    }
+    return bionicNodes;
+}
+
+function showPage(page_no) {
+	__PAGE_RENDERING_IN_PROGRESS = 1;
+	__CURRENT_PAGE = page_no;
+
+	// Disable Prev & Next buttons while page is being loaded
+	$("#pdf-next, #pdf-prev").attr('disabled', 'disabled');
+
+	// While page is being rendered hide the canvas & annotayion layer and show a loading message
+	$("#pdf-canvas").hide();
+	$("#annotation-layer").hide();
+	//$("text-layer").hide();
+	$("#page-loader").show();
+
+	// Update current page in HTML
+	$("#pdf-current-page").text(page_no);
+
+	// Fetch the page
+	__PDF_DOC.getPage(page_no).then(function(page) {
+		// As the canvas is of a fixed width we need to set the scale of the viewport accordingly
+		var scale_required = __CANVAS.width / page.getViewport({ scale: 1 }).width;
+
+		// Get viewport of the page at required scale
+		var viewport = page.getViewport({ scale: scale_required });
+
+		// Set canvas height
+		__CANVAS.height = viewport.height;
+
+		var renderContext = {
+			canvasContext: __CANVAS_CTX,
+			viewport: viewport
+		};
+		
+		// Render the page contents in the canvas
+		page.render(renderContext).promise.then(function() {
+			__PAGE_RENDERING_IN_PROGRESS = 0;
+
+			// Re-enable Prev & Next buttons
+			$("#pdf-next, #pdf-prev").removeAttr('disabled');
+
+			// Show the canvas and hide the page loader
+			$("#pdf-canvas").show();
+			$("#page-loader").hide();
+
+			return page.getTextContent();
+		}).then(function(textContent) {
+			// if(textContent.length == 0)
+			// 	return;
+            //<span style=\"left: 117.647px; top: 141.239px; font-size: 24.4706px; font-family: sans-serif;\" role=\"presentation\" dir=\"ltr\">&lt;b&gt;C&lt;/b&gt;opyright</span>
+			// console.log("Text content: " + JSON.stringify(textContent));
+            //textContent.items.map( (item, i) => `<strong>${item.str} ${i}</strong>`).join(' ');
+           // let newData = textContent.items.map(item => { return { [item.str] : ModifyTextSyllable(item.str)}});
+/*            
+          let ndata = {
+            items: []//,
+           // styles: []
+        };
+
+        //textContent.items.map( (item, i) => `<span style="">${item.str}</span>`).join(' ');
+
+              const newData =
+                textContent.items.map(item => {
+                item.str = ModifyTextBasic(item.str);
+                return item;        
+                });
+                console.log(newData);
+                ndata.items = newData;
+                ndata.styles = textContent.styles;
+             // console.log("Text content2: " + JSON.stringify(textContent));
+  */        
+          //var template = Handlebars.compile("<span>{{#each items}}{{str}}{{/each}}</span>");
+          $("#bionic").empty();
+         // $("#bionic").text(template(JSON.stringify(ndata)));        
+			var textLayer = new pdfjsLib.renderTextLayer({
+				container: $("#bionic").get(0),
+				pageIndex: page.pageIndex,
+				viewport: viewport,
+				textContent: textContent
+			});
+            
+            if(textLayer._textDivs[0]) {
+
+                textLayer._textDivs.map(item => {
+                item.innerHTML = ModifyTextBasic(item.outerText);
+               // console.log('words '+item.innerHTML)
+                return item;        
+                });
+
+               // textLayer._textDivs[0]['innerHTML']=textLayer._textDivs[0]['outerText'];
+            //console.log(textLayer._textDivs[0]);
+            }
+			// textLayer.setTextContent(textContent);
+			// textLayer.render();
+			// Get canvas offset
+			var canvas_offset = $("#pdf-canvas").offset();
+
+			// Clear HTML for text layer and show
+			$("#text-layer").html('').show();
+
+			// Assign the CSS created to the text-layer element
+			$("#text-layer").css({ left: canvas_offset.left + 'px', top: canvas_offset.top + 'px', height: __CANVAS.height + 'px', width: __CANVAS.width + 'px' });
+
+			// pdfjsLib.renderTextLayer({
+			// 	viewport: viewport,
+			// 	textDivs: [],
+			// 	container: $("#text-layer").get(0),
+			// 	textContent: textContent
+			// });
+
+			// Return annotation data of the page after the pdf has been rendered in the canvas
+			return page.getAnnotations();
+		}).then(function(annotationData) {
+			if(annotationData.length == 0)
+				return;
+
+			//console.log("Annotations: " + JSON.stringify(annotationData, null, 1));
+
+			// Get canvas offset
+			var canvas_offset = $("#pdf-canvas").offset();
+
+			// Clear HTML for annotation layer and show
+			$("#annotation-layer").html('').show();
+
+			// Assign the CSS created to the annotation-layer element
+			$("#annotation-layer").css({ left: canvas_offset.left + 'px', top: canvas_offset.top + 'px', height: __CANVAS.height + 'px', width: __CANVAS.width + 'px' });
+
+			pdfjsLib.AnnotationLayer.render({
+				viewport: viewport.clone({ dontFlip: true }),
+				div: $("#annotation-layer").get(0),
+				annotations: annotationData,
+				page: page
+			});
+		});
+	});
+}
+
+// Upon click this should should trigger click on the #file-to-upload file input element
+// This is better than showing the not-good-looking file input element
+
+$("#bionic-button").on('click', function() {
+    $('#bionic, #pdf-main-container').toggle();
+});
+
+
+$("#upload-button").on('click', function() {
+	$("#file-to-upload").trigger('click');
+});
+
+$("#new-upload-button").on('click', function() {
+	$("#file-to-upload").trigger('click');
+});
+
+// When user chooses Annotate PDF button
+$("#annotate-pdf-button").on('click', function() {
+	modifyPdf();
+});
+
+// When user chooses Save PDF button
+$("#save-pdf-button").on('click', function() {
+	savePdf();
+});
+
+// When user chooses a PDF file
+$("#file-to-upload").on('change', function() {
+	// Validate whether PDF
+    if(['application/pdf'].indexOf($("#file-to-upload").get(0).files[0].type) == -1) {
+        alert('Error : Not a PDF');
+        return;
+    }
+
+	$("#upload-button").hide();
+
+	// Send the object url of the pdf
+	showSelectedPDF(URL.createObjectURL($("#file-to-upload").get(0).files[0]));
+	// Show the first page
+});
+
+$("#first-page-button").on('click', function() {
+	showPage(1);	
+});
+
+// Previous page of the PDF
+$("#pdf-prev").on('click', function() {
+	if(__CURRENT_PAGE != 1)
+		showPage(--__CURRENT_PAGE);
+});
+
+// Next page of the PDF
+$("#pdf-next").on('click', function() {
+	if(__CURRENT_PAGE != __TOTAL_PAGES)
+		showPage(++__CURRENT_PAGE);
+});
+
+</script>
+
+</body>
+</html>
