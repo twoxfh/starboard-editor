@@ -12,9 +12,17 @@
 <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet"> 
-
+<link href="https://fonts.googleapis.com/css?family=Roboto:500,700" rel="stylesheet" type="text/css">
 <style type="text/css">
+html body {
+    font-family: 'Roboto';
+    font-weight: 200;
+}
+
+.boldcolor {
+    font-weight: 700;
+    z-index: 2;
+}
 
 #upload-button {
 	width: 150px;
@@ -223,7 +231,6 @@
   margin: -1px;
   padding: 1px;
   z-index: 1;
-  color: black;
   text-align: initial;
   left: 0;
   top: 0;
@@ -231,7 +238,7 @@
   bottom: 0;
   overflow: hidden;
   line-height: 1.5;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Roboto';
 }
 
 </style>
@@ -243,12 +250,13 @@
             <button id="pdf-next">Next</button>
             <span id="spacer"></span>
             <button id="new-upload-button">Select PDF</button> 
-            <button id="first-page-button">First Page</button> 
+            <!--<button id="first-page-button">First Page</button> 
             <button id="annotate-pdf-button">Annotate PDF</button>         
-            <button id="save-pdf-button">Save PDF</button>
+            <button id="save-pdf-button">Save PDF</button>-->
             <button id="bionic-button">Read</button> 
             <input type='text' id="textcolor" />       
-            <input type='text' id="bgcolor" />       
+            <input type='text' id="bgcolor" />
+            <input type='text' id="boldcolor" />       
         </div>
 <button id="upload-button">Select PDF</button>
 <input type="file" id="file-to-upload" accept="application/pdf" />
@@ -273,16 +281,29 @@
 <script>
 $("#textcolor").spectrum({
     color: "#fff",
+    chooseText: "background color",
     change: function(color) {
         $('body').css('background-color',  color.toHexString())
    }
 });
 $("#bgcolor").spectrum({
     color: "#000",
+    chooseText: "text color",
     change: function(color) {
         $('.bionic').css('color',  color.toHexString())
    }
 });
+$("#boldcolor").spectrum({
+    color: "#000",
+    chooseText: "bold color",
+    change: function(color) {
+        $('.boldcolor').css('color',  color.toHexString());
+        $('#boldcolor').spectrum("set", color.toHexString());
+   }
+});
+//$('.boldcolor').css('color', $("#boldcolor").spectrum('get').toHexString());
+                console.log($("#boldcolor").spectrum('get').toHexString());  
+            
 $("#bionic").hide();
 	const { degrees, PDFDocument, rgb, StandardFonts } = PDFLib
 
@@ -341,9 +362,16 @@ function addZero(i) {
   return i;
 }
 
+function changeClassColor(classname,color) {
+    var cols = document.getElementsByClassName(classname);
+    for(i=0; i<cols.length; i++) {
+      cols[i].style.color = color;
+    }
+}
+
 function showUpdatedPDF() {
 	// $("#pdf-loader").show();
-	pdfjsLib.getDocument({ data: __EXISTING_PDF_BYTES }).promise.then(function(pdf_doc) {
+    pdfjsLib.getDocument({ data: __EXISTING_PDF_BYTES }).promise.then(function(pdf_doc) {
 		__PDF_DOC = pdf_doc;
 		__TOTAL_PAGES = __PDF_DOC.numPages;
 		// Hide the pdf loader and show pdf container in HTML
@@ -393,8 +421,7 @@ function ModifyTextBasic(textNodeContent)
         //if(/\d/.test(word)) return word;
 
         
-        var boldUp2 = Math.floor(word.length/2); //TODO Add customizable length: 1/4 , 1/2 , 3/4 of a word etc..
-        return word.replace(word, `<b>${word.substring(0, boldUp2)}</b>${word.substring(boldUp2)}`);  //TODO Add customizable fonts & underline the words that are originally bolded
+        return '<b class="boldcolor" style="color: ' + $("#boldcolor").spectrum('get').toHexString() + '">' + word.slice(0, Math.ceil(word.length / 2)) + '</b>' + word.slice(Math.ceil(word.length / 2), word.length) + ' ';
     }).join(' ');
 }
 
@@ -533,7 +560,9 @@ function showPage(page_no) {
 
                 textLayer._textDivs.map(item => {
                 item.innerHTML = ModifyTextBasic(item.outerText);
-               // console.log('words '+item.innerHTML)
+                item.style.fontFamily = "Roboto";
+                item.style.fontWeight = "200";
+              // console.log(item);
                 return item;        
                 });
 
@@ -545,7 +574,8 @@ function showPage(page_no) {
 			// Get canvas offset
 			var canvas_offset = $("#pdf-canvas").offset();
 
-			// Clear HTML for text layer and show
+
+            // Clear HTML for text layer and show
 			$("#text-layer").html('').show();
 
 			// Assign the CSS created to the text-layer element
@@ -584,7 +614,6 @@ function showPage(page_no) {
 		});
 	});
 
-
 }
 
 // Upon click this should should trigger click on the #file-to-upload file input element
@@ -593,7 +622,7 @@ function showPage(page_no) {
 $("#bionic-button").on('click', function() {
     $('#bionic').toggle();
     if($('#bionic').is(':visible')){
-            $('#pdf-canvas').css('visibility','hidden');   
+            $('#pdf-canvas').css('visibility','hidden');
         } else {
             $('#pdf-canvas').css('visibility','visible');   
         }
@@ -651,6 +680,8 @@ $("#pdf-next").on('click', function() {
         } else {
             $('#pdf-canvas').css('visibility','visible');   
         }
+    //    $( "#boldcolor" ).spectrum("set", "#fff" );
+     //       console.log('test');
 });
 
 </script>
