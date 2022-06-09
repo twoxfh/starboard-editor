@@ -253,10 +253,14 @@ html body {
             <!--<button id="first-page-button">First Page</button> 
             <button id="annotate-pdf-button">Annotate PDF</button>         
             <button id="save-pdf-button">Save PDF</button>-->
-            <button id="bionic-button">Read</button> 
             <input type='text' id="textcolor" />       
             <input type='text' id="bgcolor" />
-            <input type='text' id="boldcolor" />       
+            <input type='text' id="boldcolor" />
+            <select name ="readmode" id ="readmode" >
+  <option value ="pdf" selected>pdf</option>
+  <option value ="bionic_pdf" >bionic_pdf</option>
+  <option value ="bionic_text">bionic_text</option>
+</select>
         </div>
 <button id="upload-button">Select PDF</button>
 <input type="file" id="file-to-upload" accept="application/pdf" />
@@ -269,12 +273,11 @@ html body {
 			<div id="page-count-container">Page <div id="pdf-current-page"></div> of <div id="pdf-total-pages"></div></div>
 		</div>
 		<canvas id="pdf-canvas" width="800"></canvas>
-		<div id="text-layer" class="textLayer"></div>
+		<div id="text-layer" class="textLayer" style="display:none"></div>
 		<div id="annotation-layer"></div>
 		<div id="page-loader">Loading page ...</div>
-        <div id="bionic" class="bionic" width="800">
-            No Page Text Loaded 
-            </div>
+        <div id="bionic" class="bionic" width="800"></div>
+        <div id="bionicreader" class="bionic" width="800"></div>
 	</div>
 </div>
 
@@ -304,7 +307,7 @@ $("#boldcolor").spectrum({
 //$('.boldcolor').css('color', $("#boldcolor").spectrum('get').toHexString());
                 console.log($("#boldcolor").spectrum('get').toHexString());  
             
-$("#bionic").hide();
+//$("#bionic").hide();
 	const { degrees, PDFDocument, rgb, StandardFonts } = PDFLib
 
   async function savePdf() {
@@ -480,7 +483,7 @@ function makeTextNodeBionic(textNode) {
 function showPage(page_no) {
 	__PAGE_RENDERING_IN_PROGRESS = 1;
 	__CURRENT_PAGE = page_no;
-
+    let pageText = '';
 	// Disable Prev & Next buttons while page is being loaded
 	$("#pdf-next, #pdf-prev").attr('disabled', 'disabled');
 
@@ -547,28 +550,63 @@ function showPage(page_no) {
              // console.log("Text content2: " + JSON.stringify(textContent));
   */        
           //var template = Handlebars.compile("<span>{{#each items}}{{str}}{{/each}}</span>");
+ 
           $("#bionic").empty();
-         // $("#bionic").text(template(JSON.stringify(ndata)));        
-			var textLayer = new pdfjsLib.renderTextLayer({
+          $("#bionicreader").empty();        
+          var textLayer = new pdfjsLib.renderTextLayer({
 				container: $("#bionic").get(0),
 				pageIndex: page.pageIndex,
 				viewport: viewport,
 				textContent: textContent
-			});
-            
-            if(textLayer._textDivs[0]) {
+			});      
 
+          switch($('#readmode').val()) {
+case 'bionic_text':
+                if(textLayer._textDivs[0]) {
+                    //textContent.items.map( (item, i) => `<p>${item.str}</p>`).join(' ');
+                    let blah = textLayer._textContentItemsStr.join(' ');
+                    //console.log(blah.join(' '));
+                    $("#bionicreader").html(ModifyTextBasic(blah));                   
+                }
+                $('#bionicreader').css('display','block');   
+                $('#pdf-canvas').css('display','none');
+                $('#text-layer').css('display','none');   
+                $('#bionic').css('display','none'); 
+break;
+case 'bionic_pdf':
+                if(textLayer._textDivs[0]) {
                 textLayer._textDivs.map(item => {
                 item.innerHTML = ModifyTextBasic(item.outerText);
                 item.style.fontFamily = "Roboto";
                 item.style.fontWeight = "200";
+
               // console.log(item);
                 return item;        
                 });
+                }
+                $('#bionicreader').css('display','none');   
+                $('#pdf-canvas').css('display','none');   
+                $('#bionic').css('display','block'); 
+break;
+case 'pdf':
+            if(textLayer._textDivs[0]) {
+                textLayer._textDivs.map(item => {
+                item.innerHTML = ModifyTextBasic(item.outerText);
+                item.style.fontFamily = "Roboto";
+                item.style.fontWeight = "200";
 
-               // textLayer._textDivs[0]['innerHTML']=textLayer._textDivs[0]['outerText'];
-            //console.log(textLayer._textDivs[0]);
+              // console.log(item);
+                return item;        
+                });
             }
+            $('#bionicreader').css('display','none');   
+                $('#pdf-canvas').css('display','block');   
+                $('#bionic').css('display','none'); 
+break;
+default:
+}
+
+         console.log(textLayer);
 			// textLayer.setTextContent(textContent);
 			// textLayer.render();
 			// Get canvas offset
@@ -579,7 +617,7 @@ function showPage(page_no) {
 			$("#text-layer").html('').show();
 
 			// Assign the CSS created to the text-layer element
-			$("#text-layer").css({ left: canvas_offset.left + 'px', top: canvas_offset.top + 'px', height: __CANVAS.height + 'px', width: __CANVAS.width + 'px' });
+			$("#text-layer").css({ display:none, left: canvas_offset.left + 'px', top: canvas_offset.top + 'px', height: __CANVAS.height + 'px', width: __CANVAS.width + 'px' });
 
 			// pdfjsLib.renderTextLayer({
 			// 	viewport: viewport,
@@ -589,28 +627,7 @@ function showPage(page_no) {
 			// });
 
 			// Return annotation data of the page after the pdf has been rendered in the canvas
-			return page.getAnnotations();
-		}).then(function(annotationData) {
-			if(annotationData.length == 0)
-				return;
-
-			//console.log("Annotations: " + JSON.stringify(annotationData, null, 1));
-
-			// Get canvas offset
-			var canvas_offset = $("#pdf-canvas").offset();
-
-			// Clear HTML for annotation layer and show
-			$("#annotation-layer").html('').show();
-
-			// Assign the CSS created to the annotation-layer element
-			$("#annotation-layer").css({ left: canvas_offset.left + 'px', top: canvas_offset.top + 'px', height: __CANVAS.height + 'px', width: __CANVAS.width + 'px' });
-
-			pdfjsLib.AnnotationLayer.render({
-				viewport: viewport.clone({ dontFlip: true }),
-				div: $("#annotation-layer").get(0),
-				annotations: annotationData,
-				page: page
-			});
+			
 		});
 	});
 
@@ -619,13 +636,9 @@ function showPage(page_no) {
 // Upon click this should should trigger click on the #file-to-upload file input element
 // This is better than showing the not-good-looking file input element
 
-$("#bionic-button").on('click', function() {
-    $('#bionic').toggle();
-    if($('#bionic').is(':visible')){
-            $('#pdf-canvas').css('visibility','hidden');
-        } else {
-            $('#pdf-canvas').css('visibility','visible');   
-        }
+$('#readmode').on('change', function() {
+    	showPage(__CURRENT_PAGE);
+        
 });
 
 $("#upload-button").on('click', function() {
@@ -675,12 +688,7 @@ $("#pdf-prev").on('click', function() {
 $("#pdf-next").on('click', function() {
 	if(__CURRENT_PAGE != __TOTAL_PAGES)
 		showPage(++__CURRENT_PAGE);
-        if($('#bionic').is(':visible')){
-            $('#pdf-canvas').css('visibility','hidden');   
-        } else {
-            $('#pdf-canvas').css('visibility','visible');   
-        }
-    //    $( "#boldcolor" ).spectrum("set", "#fff" );
+
      //       console.log('test');
 });
 
