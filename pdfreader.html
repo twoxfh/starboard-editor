@@ -417,14 +417,21 @@ function showSelectedPDF(pdf_url) {
 	});;
 }
 
+function onlySpaces(str) {
+  return str.trim().length === 0;
+}
+
 function ModifyTextBasic(textNodeContent) 
 {
     return textNodeContent.split(' ').map((word) => {
         //TODO if the user wants numbers to be bolded    
         //if(/\d/.test(word)) return word;
-
         
-        return '<b class="boldcolor" style="color: ' + $("#boldcolor").spectrum('get').toHexString() + '">' + word.slice(0, Math.ceil(word.length / 2)) + '</b>' + word.slice(Math.ceil(word.length / 2), word.length) + ' ';
+        let content = '';
+    
+            content = '<b class="boldcolor" style="color: ' + $("#boldcolor").spectrum('get').toHexString() + '">' + word.slice(0, Math.ceil(word.length / 2)) + '</b>' + word.slice(Math.ceil(word.length / 2), word.length) + ' ';
+        
+        return content;
     }).join(' ');
 }
 
@@ -566,12 +573,33 @@ case 'bionic_text':
                     //textContent.items.map( (item, i) => `<p>${item.str}</p>`).join(' ');
                     let blah = textLayer._textContentItemsStr.join(' ');
                     //console.log(blah.join(' '));
-                    $("#bionicreader").html(ModifyTextBasic(blah));                   
+                   // $("#bionicreader").html(ModifyTextBasic(blah));                   
                 }
                 $('#bionicreader').css('display','block');   
                 $('#pdf-canvas').css('display','none');
                 $('#text-layer').css('display','none');   
                 $('#bionic').css('display','none'); 
+
+//                    $("#bionicreader").html(rbcontent);
+
+                let rcontent = '';
+                if(textLayer._textDivs[0]) {
+                textLayer._textDivs.map(item => {
+                if(textLayer._textDivProperties.get(item).hasEOL && textLayer._textDivProperties.get(item).hasText) {
+                    rcontent += ModifyTextBasic(item.innerHTML);
+                    rcontent += "<br />";
+                } else if(textLayer._textDivProperties.get(item).hasText && textLayer._textDivProperties.get(item).hasEOL == false) {
+                    rcontent += ModifyTextBasic(item.innerHTML);
+                } else if(textLayer._textDivProperties.get(item).hasText == false && textLayer._textDivProperties.get(item).hasEOL) {
+                    rcontent += "<br />";       
+                }
+                else {
+                    
+                }
+            });
+            $("#bionicreader").html(rcontent);
+        }
+
 break;
 case 'bionic_pdf':
                 if(textLayer._textDivs[0]) {
@@ -618,7 +646,7 @@ default:
 
 			// Assign the CSS created to the text-layer element
 			$("#text-layer").css({ display:none, left: canvas_offset.left + 'px', top: canvas_offset.top + 'px', height: __CANVAS.height + 'px', width: __CANVAS.width + 'px' });
-
+        
 			// pdfjsLib.renderTextLayer({
 			// 	viewport: viewport,
 			// 	textDivs: [],
@@ -630,7 +658,7 @@ default:
 			
 		});
 	});
-
+ 
 }
 
 // Upon click this should should trigger click on the #file-to-upload file input element
@@ -638,7 +666,6 @@ default:
 
 $('#readmode').on('change', function() {
     	showPage(__CURRENT_PAGE);
-        
 });
 
 $("#upload-button").on('click', function() {
@@ -688,7 +715,7 @@ $("#pdf-prev").on('click', function() {
 $("#pdf-next").on('click', function() {
 	if(__CURRENT_PAGE != __TOTAL_PAGES)
 		showPage(++__CURRENT_PAGE);
-
+        console.log($('#bionic').innerHTML);
      //       console.log('test');
 });
 
