@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css?family=Roboto:500,700" rel="stylesheet" type="text/css">
+<script src="https://unpkg.com/compromise"></script>
 <style type="text/css">
 html body {
     font-family: 'Roboto';
@@ -152,10 +153,15 @@ html body {
 
 .bionic span,
 .bionic br {
-  position: absolute;
-  white-space: pre;
+  /*position: absolute;*/
+  position: relative;
+  /*white-space: pre;
   cursor: text;
-  transform-origin: 0% 0%;
+  transform-origin: 0% 0%;*/
+  display: inline-block;
+
+  left: 0;
+
 }
 
 .bionic span.markedContent {
@@ -298,8 +304,25 @@ header{
   margin:0 auto;
 }
 header{display:inline-block; font-size:12px;}
-span{padding-left:20px;}
+/*span{padding-left:20px;}*/
 a{color:#336699;}
+
+.nouns {
+			color: #6393b9;
+		}
+
+.verbs {
+			color: rgb(202, 103, 136);
+		}
+
+.places {
+			color: #978BA3;
+		}
+
+.adjectives {
+			color: #689b7d;
+		}
+        
 </style>
 </head>
 
@@ -327,10 +350,15 @@ Page <b id="pdf-current-page"></b> of <b id="pdf-total-pages"></b>
             <input type='text' id="bgcolor" />
             <input type='text' id="boldcolor" />
             <input type='text' id="wordcolor" />
+            <input type='text' id="nouncolor" />       
+            <input type='text' id="verbcolor" />
+            <input type='text' id="placecolor" />
+            <input type='text' id="adjectivecolor" />
             <select name ="readmode" id ="readmode" >
   <option value ="pdf" selected>pdf</option>
   <option value ="bionic_pdf" >bionic_pdf</option>
   <option value ="bionic_text">bionic_text</option>
+  <option value ="nlp_text">nlp_text</option>
 </select>
         </div>
       </div> 
@@ -392,6 +420,36 @@ $("#wordcolor").spectrum({
     chooseText: "word color",
     change: function(color) {
         $('.wordcolor').css('background-color',  color.toHexString())
+   }
+});
+
+
+$("#nouncolor").spectrum({
+    color: "#6393b9",
+    chooseText: "noun color",
+    change: function(color) {
+        $('.nouns').css('color',  color.toHexString())
+   }
+});
+$("#verbcolor").spectrum({
+	color: "#DB7093",
+    chooseText: "verb color",
+    change: function(color) {
+        $('.verbs').css('color',  color.toHexString())
+   }
+});
+$("#placecolor").spectrum({
+    color: "#978BA3",
+    chooseText: "place color",
+    change: function(color) {
+        $('.places').css('color',  color.toHexString())
+   }
+});
+$("#adjectivecolor").spectrum({
+    color: "#689b7d",
+    chooseText: "adjective color",
+    change: function(color) {
+        $('.adjectives').css('color',  color.toHexString())
    }
 });
 
@@ -582,7 +640,7 @@ function showPage(page_no) {
 	__PAGE_RENDERING_IN_PROGRESS = 1;
 	__CURRENT_PAGE = page_no;
     let pageText = '';
-	// Disable Prev & Next buttons while page is being loaded
+    // Disable Prev & Next buttons while page is being loaded
 	$("#pdf-next, #pdf-prev").attr('disabled', 'disabled');
 
 	// While page is being rendered hide the canvas & annotayion layer and show a loading message
@@ -689,6 +747,64 @@ case 'bionic_text':
                 }
             });
             $("#bionicreader").html(rcontent);
+        }
+
+break;
+case 'nlp_text':
+                if(textLayer._textDivs[0]) {
+                    //textContent.items.map( (item, i) => `<p>${item.str}</p>`).join(' ');
+                    let blah = textLayer._textContentItemsStr.join(' ');
+                    //console.log(blah.join(' '));
+                   // $("#bionicreader").html(ModifyTextBasic(blah));                   
+                }
+                $('#bionicreader').css('display','block');   
+                $('#pdf-canvas').css('display','none');
+                $('#text-layer').css('display','none');   
+                $('#bionic').css('display','none'); 
+
+//                    $("#bionicreader").html(rbcontent);
+            var specialCharacters = /[`@#$%^*()_+=\[\]{};:\\|<>\/~]/;
+
+                let nlpcontent = '<p>';
+                if(textLayer._textDivs[0]) {
+                textLayer._textDivs.map(item => {
+                if(textLayer._textDivProperties.get(item).hasEOL && textLayer._textDivProperties.get(item).hasText) {
+                    if(!specialCharacters.test(item.innerHTML)) {
+                    let doc = window.nlp(item.innerHTML)
+                    let str= doc.html({
+                    '.nouns': '#Noun', //a class name
+                    '.verbs': '#Verb',
+                    '.places': '#Place',
+                    '.adjectives': '#Adjective',
+                    })
+                    nlpcontent += str;
+                } else {
+                    nlpcontent += item.innerHTML;
+                }
+                    nlpcontent += "</p><p>";
+                } else if(textLayer._textDivProperties.get(item).hasText && textLayer._textDivProperties.get(item).hasEOL == false) {
+                    if(!specialCharacters.test(item.innerHTML)) {
+                    
+                    let doc = window.nlp(item.innerHTML)
+                    let str= doc.html({
+                    '.nouns': '#Noun', //a class name
+                    '.verbs': '#Verb',
+                    '.places': '#Place',
+                    '.adjectives': '#Adjective',
+                    })
+                    nlpcontent += str;
+                } else {
+                    nlpcontent += item.innerHTML;
+                }
+               
+                } else if(textLayer._textDivProperties.get(item).hasText == false && textLayer._textDivProperties.get(item).hasEOL) {
+                    nlpcontent += "</p><p>";       
+                }
+                else {
+                    
+                }
+            });
+            $("#bionicreader").html(nlpcontent);
         }
 
 break;
