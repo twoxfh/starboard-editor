@@ -24,6 +24,10 @@ html body {
     z-index: 2;
 }
 
+.wordcolor {
+    background-color: '#FFF';
+}
+
 #upload-button {
 	width: 150px;
 	display: block;
@@ -241,14 +245,79 @@ html body {
   font-family: 'Roboto';
 }
 
+header{
+	width:100%; 
+	background:#ffffff; 
+	height:60px; 
+	line-height:60px;
+	border-bottom:1px solid #dddddd;
+}
+.hamburger{
+  background:none;
+  position:absolute;
+  top:0;
+  right:0;
+  line-height:45px;
+  padding:5px 15px 0px 15px;
+  color:#999;
+  border:0;
+  font-size:1.4em;
+  font-weight:bold;
+  cursor:pointer;
+  outline:none;
+  z-index:10000000000000;
+}
+.cross{
+  background:none;
+  position:absolute;
+  top:0px;
+  right:0;
+  padding:7px 15px 0px 15px;
+  color:#999;
+  border:0;
+  font-size:3em;
+  line-height:65px;
+  font-weight:bold;
+  cursor:pointer;
+  outline:none;
+  z-index:10000000000000;
+}
+.menu{z-index:1000000; font-weight:bold; font-size:0.8em; width:100%; background:#f1f1f1;  position:absolute; text-align:center; font-size:12px;}
+.menu ul {margin: 0; padding: 0; list-style-type: none; list-style-image: none;}
+.menu li {display: block;   padding:15px 0 15px 0; border-bottom:#dddddd 1px solid;}
+.menu li:hover{display: block;    background:#ffffff; padding:15px 0 15px 0; border-bottom:#dddddd 1px solid;}
+.menu ul li a { text-decoration:none;  margin: 0px; color:#666;}
+.menu ul li a:hover {  color: #666; text-decoration:none;}
+.menu a{text-decoration:none; color:#666;}
+.menu a:hover{text-decoration:none; color:#666;}
+
+.glyphicon-home{
+  color:white; 
+  font-size:1.5em; 
+  margin-top:5px; 
+  margin:0 auto;
+}
+header{display:inline-block; font-size:12px;}
+span{padding-left:20px;}
+a{color:#336699;}
 </style>
 </head>
 
 <body>
+    <header>
+        <button id="pdf-prev">Previous</button>
+        <span id="spacer"></span>
+        <button id="pdf-next">Next</button>
+        <span id="spacer"></span>
+        <button id="upload-button">Select PDF</button>
+<input type="file" id="file-to-upload" accept="application/pdf" />
+
+        <button class="hamburger">&#9776;</button>
+        <button class="cross">&#735;</button>
+      </header>
+      
+      <div class="menu">
         <div id="pdf-buttons" style="z-index: -1;">
-            <button id="pdf-prev">Previous</button>
-            <button id="pdf-next">Next</button>
-            <span id="spacer"></span>
             <button id="new-upload-button">Select PDF</button> 
             <!--<button id="first-page-button">First Page</button> 
             <button id="annotate-pdf-button">Annotate PDF</button>         
@@ -256,14 +325,14 @@ html body {
             <input type='text' id="textcolor" />       
             <input type='text' id="bgcolor" />
             <input type='text' id="boldcolor" />
+            <input type='text' id="wordcolor" />
             <select name ="readmode" id ="readmode" >
   <option value ="pdf" selected>pdf</option>
   <option value ="bionic_pdf" >bionic_pdf</option>
   <option value ="bionic_text">bionic_text</option>
 </select>
         </div>
-<button id="upload-button">Select PDF</button>
-<input type="file" id="file-to-upload" accept="application/pdf" />
+      </div> 
 
 <div id="pdf-main-container">
 	<div id="pdf-loader">Loading document ...</div>
@@ -280,8 +349,25 @@ html body {
         <div id="bionicreader" class="bionic" width="800"></div>
 	</div>
 </div>
-
+<button id="pdf-next">Next</button>
 <script>
+
+$( ".menu" ).hide();
+$( ".hamburger" ).click(function() {
+$( ".menu" ).slideToggle( "slow", function() {
+$( ".hamburger" ).hide();
+$( ".cross" ).show();
+});
+});
+
+$( ".cross" ).click(function() {
+$( ".menu" ).slideToggle( "slow", function() {
+$( ".cross" ).hide();
+$( ".hamburger" ).show();
+});
+});
+
+
 $("#textcolor").spectrum({
     color: "#fff",
     chooseText: "background color",
@@ -293,7 +379,7 @@ $("#bgcolor").spectrum({
     color: "#000",
     chooseText: "text color",
     change: function(color) {
-        $('.bionic').css('color',  color.toHexString())
+        $('.wordcolor').css('color',  color.toHexString())
    }
 });
 $("#boldcolor").spectrum({
@@ -304,6 +390,14 @@ $("#boldcolor").spectrum({
         $('#boldcolor').spectrum("set", color.toHexString());
    }
 });
+$("#wordcolor").spectrum({
+    color: "#FFF",
+    chooseText: "word color",
+    change: function(color) {
+        $('.wordcolor').css('background-color',  color.toHexString())
+   }
+});
+
 //$('.boldcolor').css('color', $("#boldcolor").spectrum('get').toHexString());
                 console.log($("#boldcolor").spectrum('get').toHexString());  
             
@@ -429,7 +523,7 @@ function ModifyTextBasic(textNodeContent)
         
         let content = '';
     
-            content = '<b class="boldcolor" style="color: ' + $("#boldcolor").spectrum('get').toHexString() + '">' + word.slice(0, Math.ceil(word.length / 2)) + '</b>' + word.slice(Math.ceil(word.length / 2), word.length) + ' ';
+            content = '<mark class="wordcolor" style="background-color: ' + $("#wordcolor").spectrum('get').toHexString() + '"><b class="boldcolor" style="color: ' + $("#boldcolor").spectrum('get').toHexString() + '">' + word.slice(0, Math.ceil(word.length / 2)) + '</b>' + word.slice(Math.ceil(word.length / 2), word.length) + '</mark> ';
         
         return content;
     }).join(' ');
