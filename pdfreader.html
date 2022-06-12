@@ -355,6 +355,7 @@ Page <b id="pdf-current-page"></b> of <b id="pdf-total-pages"></b>
             <input type='text' id="placecolor" />
             <input type='text' id="adjectivecolor" />
             <select name ="readmode" id ="readmode" >
+            <input type='text' id="gopage" /><button id="goto-button">Go to Page</button> 
   <option value ="pdf" selected>pdf</option>
   <option value ="bionic_pdf" >bionic_pdf</option>
   <option value ="bionic_text">bionic_text</option>
@@ -870,6 +871,10 @@ default:
 
 // Upon click this should should trigger click on the #file-to-upload file input element
 // This is better than showing the not-good-looking file input element
+
+$('#goto-button').on('click', function() {
+    	showPage(parseInt($('#gopage').val()));
+});
 
 $('#readmode').on('change', function() {
     	showPage(__CURRENT_PAGE);
