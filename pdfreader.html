@@ -28,12 +28,12 @@ html body {
     background-color: '#FFF';
 }
 
-#upload-button {
+/*#upload-button {
 	width: 150px;
 	display: block;
 	margin: 20px auto;
 }
-
+*/
 #file-to-upload {
 	display: none;
 }
@@ -55,16 +55,16 @@ html body {
 #pdf-contents {
 	display: none;
 }
-
+/*
 #pdf-meta {
 	overflow: hidden;
 	margin: 0 0 20px 0;
 }
-
+*/
 #pdf-buttons {
 	float: left;
 }
-
+/*
 #page-count-container {
 	float: right;
 }
@@ -76,7 +76,7 @@ html body {
 #pdf-total-pages {
 	display: inline;
 }
-
+*/
 #pdf-canvas {
 	border: 1px solid rgba(0,0,0,0.2);
 	box-sizing: border-box;
@@ -311,7 +311,8 @@ a{color:#336699;}
         <span id="spacer"></span>
         <button id="upload-button">Select PDF</button>
 <input type="file" id="file-to-upload" accept="application/pdf" />
-
+<span id="spacer"></span>
+Page <b id="pdf-current-page"></b> of <b id="pdf-total-pages"></b>
         <button class="hamburger">&#9776;</button>
         <button class="cross">&#735;</button>
       </header>
@@ -337,10 +338,7 @@ a{color:#336699;}
 <div id="pdf-main-container">
 	<div id="pdf-loader">Loading document ...</div>
 	<div id="pdf-contents">
-		<div id="pdf-meta">
 
-			<div id="page-count-container">Page <div id="pdf-current-page"></div> of <div id="pdf-total-pages"></div></div>
-		</div>
 		<canvas id="pdf-canvas" width="800"></canvas>
 		<div id="text-layer" class="textLayer" style="display:none"></div>
 		<div id="annotation-layer"></div>
@@ -349,7 +347,6 @@ a{color:#336699;}
         <div id="bionicreader" class="bionic" width="800"></div>
 	</div>
 </div>
-<button id="pdf-next">Next</button>
 <script>
 
 $( ".menu" ).hide();
@@ -676,16 +673,16 @@ case 'bionic_text':
 
 //                    $("#bionicreader").html(rbcontent);
 
-                let rcontent = '';
+                let rcontent = '<p>';
                 if(textLayer._textDivs[0]) {
                 textLayer._textDivs.map(item => {
                 if(textLayer._textDivProperties.get(item).hasEOL && textLayer._textDivProperties.get(item).hasText) {
                     rcontent += ModifyTextBasic(item.innerHTML);
-                    rcontent += "<br />";
+                    rcontent += "</p><p>";
                 } else if(textLayer._textDivProperties.get(item).hasText && textLayer._textDivProperties.get(item).hasEOL == false) {
                     rcontent += ModifyTextBasic(item.innerHTML);
                 } else if(textLayer._textDivProperties.get(item).hasText == false && textLayer._textDivProperties.get(item).hasEOL) {
-                    rcontent += "<br />";       
+                    rcontent += "</p><p>";       
                 }
                 else {
                     
