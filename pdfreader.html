@@ -15,14 +15,19 @@
 <link href="https://fonts.googleapis.com/css?family=Roboto:500,700" rel="stylesheet" type="text/css">
 <script src="https://unpkg.com/compromise"></script>
 <style type="text/css">
+  /*python3 -m http.server 8000*/
 html body {
-    font-family: 'Roboto';
-    font-weight: 200;
+    /*font-family: 'Roboto';
+    font-weight: 200;*/
+    font-family: opendyslexic;
 }
 
+mark {
+    background-color: white;
+    font-family: opendyslexic;
+}
 .boldcolor {
     font-weight: 700;
-    z-index: 2;
 }
 
 .wordcolor {
@@ -120,8 +125,8 @@ html body {
     height: 100%;
 }
 
-/*
-.textLayer {
+
+.textLayer > * {
     background-color: white;
   color: black;
   position: absolute;
@@ -130,17 +135,15 @@ html body {
   top: 0;
   right: 0;
   bottom: 0;
-  overflow: hidden;
-  opacity: 0.2;
+  /*overflow: hidden;*/
+  opacity: 1.0;
   line-height: 1;
   -webkit-text-size-adjust: none;
      -moz-text-size-adjust: none;
           text-size-adjust: none;
   forced-color-adjust: none;
-  z-index: 1;  
+  z-index: -1;  
 }
-*/
-
 
 .textLayer span,
 .textLayer br {
@@ -246,7 +249,7 @@ html body {
   top: 0;
   right: 0;
   bottom: 0;
-  overflow: hidden;
+  /*overflow: hidden;*/
   line-height: 1.5;
   font-family: 'Roboto';
 }
@@ -322,7 +325,47 @@ a{color:#336699;}
 .adjectives {
 			color: #689b7d;
 		}
-        
+
+    @font-face {
+  font-family: 'opendyslexic';
+	src: url('OpenDyslexicAlta-Regular.otf');
+	font-style: normal;
+	font-weight: normal;
+} 
+
+@font-face {
+	font-family: 'opendyslexic';
+	src: url('OpenDyslexicAlta-Italic.ttf');
+	font-style: italic;
+	font-weight: normal;
+}
+
+@font-face {
+	font-family: 'opendyslexic';
+	src: url('OpenDyslexicAlta-Bold.ttf');
+	font-weight: bold;
+	font-style: normal;
+} 
+
+@font-face {
+	font-family: 'opendyslexic';
+	src: url('OpenDyslexicAlta-BoldItalic.ttf');
+	font-weight: bold;
+	font-style: italic;
+} 
+
+@font-face {
+	font-family: eulexia;
+	src: url('http://dyslexicfonts.com/fonts/eulexia.ttf');
+} 
+
+* {
+	font-size:20px;
+	line-height:200%;
+	color: #191A42;
+	font-family:opendyslexic !important;
+}
+
 </style>
 </head>
 
@@ -332,10 +375,12 @@ a{color:#336699;}
         <span id="spacer"></span>
         <button id="pdf-next">Next</button>
         <span id="spacer"></span>
+        <input type='text' id="gopage" style='width:3em' /><button id="goto-button">Go to Page</button> 
+        <span id="spacer"></span>
         <button id="upload-button">Select PDF</button>
-<input type="file" id="file-to-upload" accept="application/pdf" />
-<span id="spacer"></span>
-Page <b id="pdf-current-page"></b> of <b id="pdf-total-pages"></b>
+        <input type="file" id="file-to-upload" accept="application/pdf" />
+        <span id="spacer"></span>
+        Page <b id="pdf-current-page"></b> of <b id="pdf-total-pages"></b>
         <button class="hamburger">&#9776;</button>
         <button class="cross">&#735;</button>
       </header>
@@ -346,15 +391,9 @@ Page <b id="pdf-current-page"></b> of <b id="pdf-total-pages"></b>
             <!--<button id="first-page-button">First Page</button> 
             <button id="annotate-pdf-button">Annotate PDF</button>         
             <button id="save-pdf-button">Save PDF</button>-->
-            <input type='text' id="textcolor" />       
-            <input type='text' id="bgcolor" />
-            <input type='text' id="boldcolor" />
-            <input type='text' id="wordcolor" />
-            <input type='text' id="nouncolor" />       
-            <input type='text' id="verbcolor" />
-            <input type='text' id="placecolor" />
-            <input type='text' id="adjectivecolor" />
-            <input type='text' id="gopage" /><button id="goto-button">Go to Page</button> 
+  <!--          <input type='text' id="textcolor" />       -->
+  <div id="buttoncolors"></div>          
+
             <select name ="readmode" id ="readmode" >
   <option value ="pdf" selected>pdf</option>
   <option value ="bionic_pdf" >bionic_pdf</option>
@@ -370,10 +409,10 @@ Page <b id="pdf-current-page"></b> of <b id="pdf-total-pages"></b>
 
 		<canvas id="pdf-canvas" width="800"></canvas>
 		<div id="text-layer" class="textLayer" style="display:none"></div>
-		<div id="annotation-layer"></div>
+		<div id="bionic" class="bionic" width="800"></div>
+    <div id="annotation-layer"></div>
 		<div id="page-loader">Loading page ...</div>
-        <div id="bionic" class="bionic" width="800"></div>
-        <div id="bionicreader" class="bionic" width="800"></div>
+        
 	</div>
 </div>
 <script>
@@ -394,6 +433,8 @@ $( ".hamburger" ).show();
 });
 
 
+
+/*
 $("#textcolor").spectrum({
     color: "#fff",
     chooseText: "background color",
@@ -401,61 +442,11 @@ $("#textcolor").spectrum({
         $('body').css('background-color',  color.toHexString())
    }
 });
-$("#bgcolor").spectrum({
-    color: "#000",
-    chooseText: "text color",
-    change: function(color) {
-        $('.wordcolor').css('color',  color.toHexString())
-   }
-});
-$("#boldcolor").spectrum({
-    color: "#000",
-    chooseText: "bold color",
-    change: function(color) {
-        $('.boldcolor').css('color',  color.toHexString());
-        $('#boldcolor').spectrum("set", color.toHexString());
-   }
-});
-$("#wordcolor").spectrum({
-    color: "#FFF",
-    chooseText: "word color",
-    change: function(color) {
-        $('.wordcolor').css('background-color',  color.toHexString())
-   }
-});
+*/
 
-
-$("#nouncolor").spectrum({
-    color: "#6393b9",
-    chooseText: "noun color",
-    change: function(color) {
-        $('.nouns').css('color',  color.toHexString())
-   }
-});
-$("#verbcolor").spectrum({
-	color: "#DB7093",
-    chooseText: "verb color",
-    change: function(color) {
-        $('.verbs').css('color',  color.toHexString())
-   }
-});
-$("#placecolor").spectrum({
-    color: "#978BA3",
-    chooseText: "place color",
-    change: function(color) {
-        $('.places').css('color',  color.toHexString())
-   }
-});
-$("#adjectivecolor").spectrum({
-    color: "#689b7d",
-    chooseText: "adjective color",
-    change: function(color) {
-        $('.adjectives').css('color',  color.toHexString())
-   }
-});
 
 //$('.boldcolor').css('color', $("#boldcolor").spectrum('get').toHexString());
-                console.log($("#boldcolor").spectrum('get').toHexString());  
+               // console.log($("#boldcolor").spectrum('get').toHexString());  
             
 //$("#bionic").hide();
 	const { degrees, PDFDocument, rgb, StandardFonts } = PDFLib
@@ -579,7 +570,7 @@ function ModifyTextBasic(textNodeContent)
         
         let content = '';
     
-            content = '<mark class="wordcolor" style="background-color: ' + $("#wordcolor").spectrum('get').toHexString() + '; color: ' + $("#bgcolor").spectrum('get').toHexString() + '"><b class="boldcolor" style="color: ' + $("#boldcolor").spectrum('get').toHexString() + '">' + word.slice(0, Math.ceil(word.length / 2)) + '</b>' + word.slice(Math.ceil(word.length / 2), word.length) + '</mark> ';
+            content = '<mark class="wordcolor" style="background-color: ' + $("#wordcolorbackground-color").spectrum('get').toHexString() + '; color: ' + $("#bgcolorcolor").spectrum('get').toHexString() + '"><b class="boldcolor" style="color: ' + $("#boldcolorcolor").spectrum('get').toHexString() + '">' + word.slice(0, Math.ceil(word.length / 2)) + '</b>' + word.slice(Math.ceil(word.length / 2), word.length) + '</mark> ';
         
         return content;
     }).join(' ');
@@ -668,7 +659,7 @@ function showPage(page_no) {
 			canvasContext: __CANVAS_CTX,
 			viewport: viewport
 		};
-		
+		//console.log(page);
 		// Render the page contents in the canvas
 		page.render(renderContext).promise.then(function() {
 			__PAGE_RENDERING_IN_PROGRESS = 0;
@@ -708,8 +699,7 @@ function showPage(page_no) {
   */        
           //var template = Handlebars.compile("<span>{{#each items}}{{str}}{{/each}}</span>");
  
-          $("#bionic").empty();
-          $("#bionicreader").empty();        
+          $("#bionic").empty();        
           var textLayer = new pdfjsLib.renderTextLayer({
 				container: $("#bionic").get(0),
 				pageIndex: page.pageIndex,
@@ -717,22 +707,17 @@ function showPage(page_no) {
 				textContent: textContent
 			});      
 
-          switch($('#readmode').val()) {
+      let rcontent = "";
+      console.log($('#readmode').find(":selected").text());
+          switch($('#readmode').find(":selected").text()) {
 case 'bionic_text':
-                if(textLayer._textDivs[0]) {
-                    //textContent.items.map( (item, i) => `<p>${item.str}</p>`).join(' ');
-                    let blah = textLayer._textContentItemsStr.join(' ');
-                    //console.log(blah.join(' '));
-                   // $("#bionicreader").html(ModifyTextBasic(blah));                   
-                }
-                $('#bionicreader').css('display','block');   
-                $('#pdf-canvas').css('display','none');
-                $('#text-layer').css('display','none');   
-                $('#bionic').css('display','none'); 
+
+                $('#pdf-canvas').css('display','none');   
+                $('#bionic').css('display','block'); 
 
 //                    $("#bionicreader").html(rbcontent);
 
-                let rcontent = '<p>';
+                rcontent += '<p>';
                 if(textLayer._textDivs[0]) {
                 textLayer._textDivs.map(item => {
                 if(textLayer._textDivProperties.get(item).hasEOL && textLayer._textDivProperties.get(item).hasText) {
@@ -747,7 +732,8 @@ case 'bionic_text':
                     
                 }
             });
-            $("#bionicreader").html(rcontent);
+
+
         }
 
 break;
@@ -758,15 +744,13 @@ case 'nlp_text':
                     //console.log(blah.join(' '));
                    // $("#bionicreader").html(ModifyTextBasic(blah));                   
                 }
-                $('#bionicreader').css('display','block');   
                 $('#pdf-canvas').css('display','none');
-                $('#text-layer').css('display','none');   
-                $('#bionic').css('display','none'); 
+                $('#bionic').css('display','block'); 
 
 //                    $("#bionicreader").html(rbcontent);
             var specialCharacters = /[`@#$%^*()_+=\[\]{};:\\|<>\/~]/;
 
-                let nlpcontent = '<p>';
+                rcontent += '<p>';
                 if(textLayer._textDivs[0]) {
                 textLayer._textDivs.map(item => {
                 if(textLayer._textDivProperties.get(item).hasEOL && textLayer._textDivProperties.get(item).hasText) {
@@ -778,11 +762,11 @@ case 'nlp_text':
                     '.places': '#Place',
                     '.adjectives': '#Adjective',
                     })
-                    nlpcontent += str;
+                    rcontent += str;
                 } else {
-                    nlpcontent += item.innerHTML;
+                  rcontent += item.innerHTML;
                 }
-                    nlpcontent += "</p><p>";
+                rcontent += "</p><p>";
                 } else if(textLayer._textDivProperties.get(item).hasText && textLayer._textDivProperties.get(item).hasEOL == false) {
                     if(!specialCharacters.test(item.innerHTML)) {
                     
@@ -793,56 +777,67 @@ case 'nlp_text':
                     '.places': '#Place',
                     '.adjectives': '#Adjective',
                     })
-                    nlpcontent += str;
+                    rcontent += str;
                 } else {
-                    nlpcontent += item.innerHTML;
+                  rcontent += item.innerHTML;
                 }
                
                 } else if(textLayer._textDivProperties.get(item).hasText == false && textLayer._textDivProperties.get(item).hasEOL) {
-                    nlpcontent += "</p><p>";       
+                  rcontent += "</p><p>";       
                 }
                 else {
                     
                 }
             });
-            $("#bionicreader").html(nlpcontent);
+
         }
 
 break;
 case 'bionic_pdf':
+                $('#pdf-canvas').css('display','none');   
+                $('#bionic').css('display','block'); 
+                
+                if(textLayer._textDivs[0]) {
+                //let rbcontent = ""
+                textLayer._textDivs.map(item => {
+                item.innerHTML = ModifyTextBasic(item.outerText);
+                return item;
+                });
+                //$("#bionic").html(rbcontent);
+                }
+
+break;
+case 'pdf':
+            
+                $('#pdf-canvas').css('display','block');   
+                $('#bionic').css('display','none'); 
+                
                 if(textLayer._textDivs[0]) {
                 textLayer._textDivs.map(item => {
                 item.innerHTML = ModifyTextBasic(item.outerText);
-                item.style.fontFamily = "Roboto";
-                item.style.fontWeight = "200";
-
-              // console.log(item);
-                return item;        
-                });
-                }
-                $('#bionicreader').css('display','none');   
-                $('#pdf-canvas').css('display','none');   
-                $('#bionic').css('display','block'); 
-break;
-case 'pdf':
-            if(textLayer._textDivs[0]) {
-                textLayer._textDivs.map(item => {
-                item.innerHTML = ModifyTextBasic(item.outerText);
-                item.style.fontFamily = "Roboto";
-                item.style.fontWeight = "200";
+                //item.style.fontFamily = "Roboto";
+                //item.style.fontWeight = "200";
 
               // console.log(item);
                 return item;        
                 });
             }
-            $('#bionicreader').css('display','none');   
-                $('#pdf-canvas').css('display','block');   
-                $('#bionic').css('display','none'); 
 break;
 default:
 }
 
-         console.log(textLayer);
+$("#bionic").html(rcontent);
+
+            if(textLayer._textDivs[0]) {
+                //let rbcontent = ""
+                textLayer._textDivs.map(item => {
+                item.innerHTML = "";
+                return item;
+                });
+                //$("#bionic").html(rbcontent);
+                }
+
+        // console.log(textLayer);
 			// textLayer.setTextContent(textContent);
 			// textLayer.render();
 			// Get canvas offset
@@ -866,7 +861,43 @@ default:
 			
 		});
 	});
- 
+/* generate color buttons */
+  $("#buttoncolors").empty();
+  var dataall = JSON.parse(`[
+{"page": "all", "name":"textcolor", "color":"fff", "cssid":"body", "cssproperty":"background-color"}, 
+{"page": "all", "name":"bgcolor", "color":"000", "cssid":"body", "cssproperty":"color"},
+{"page": "bionic_text", "name":"boldcolor", "color":"000", "cssid":".boldcolor", "cssproperty":"color"},
+{"page": "bionic_text", "name":"wordcolor", "color":"000", "cssid":".wordcolor", "cssproperty":"color"},
+{"page": "bionic_text", "name":"boldcolor", "color":"fff", "cssid":".boldcolor", "cssproperty":"background-color"},
+{"page": "bionic_text", "name":"wordcolor", "color":"fff", "cssid":".wordcolor", "cssproperty":"background-color"},
+{"page": "bionic_pdf", "name":"boldcolor", "color":"000", "cssid":".boldcolor", "cssproperty":"color"},
+{"page": "bionic_pdf", "name":"wordcolor", "color":"000", "cssid":".wordcolor", "cssproperty":"color"},
+{"page": "bionic_pdf", "name":"boldcolor", "color":"fff", "cssid":".boldcolor", "cssproperty":"background-color"},
+{"page": "bionic_pdf", "name":"wordcolor", "color":"ff", "cssid":".wordcolor", "cssproperty":"background-color"},
+{"page": "nlp_text", "name":"placecolor", "color":"978BA3", "cssid":".places", "cssproperty":"background-color"},
+{"page": "nlp_text", "name":"adjectivecolor", "color":"689b7d","cssid":".adjectives", "cssproperty":"background-color"},
+{"page": "nlp_text", "name":"nouncolor", "color":"6393b9", "cssid":".nouns", "cssproperty":"background-color"},
+{"page": "nlp_text", "name":"verbcolor", "color":"DB7093", "cssid":".verbs", "cssproperty":"background-color"},
+{"page": "nlp_text", "name":"placecolor", "color":"978BA3", "cssid":".places", "cssproperty":"color"},
+{"page": "nlp_text", "name":"adjectivecolor", "color":"689b7d","cssid":".adjectives", "cssproperty":"color"},
+{"page": "nlp_text", "name":"nouncolor", "color":"6393b9", "cssid":".nouns", "cssproperty":"color"},
+{"page": "nlp_text", "name":"verbcolor", "color":"DB7093", "cssid":".verbs", "cssproperty":"color"}
+]`);
+
+var textcolors = $.grep(dataall, function( n, i ) {
+    return n.page === 'all' || n.page === $('#readmode').find(":selected").text();
+});
+
+$.each(textcolors, function (i) {
+  $("#buttoncolors").append('<label>'+textcolors[i].name + ' ' +textcolors[i].cssproperty+'<input type="text" id="'+textcolors[i].name+textcolors[i].cssproperty+'"/></label><br />');
+   $('#'+textcolors[i].name+textcolors[i].cssproperty).spectrum({
+    color: '#'+textcolors[i].color,
+    chooseText: "change",
+    change: function(color) {
+        $(textcolors[i].cssid).css(textcolors[i].cssproperty,  color.toHexString())
+   }
+});
+});
 }
 
 // Upon click this should should trigger click on the #file-to-upload file input element
