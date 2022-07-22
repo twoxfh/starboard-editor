@@ -4,9 +4,9 @@
         <meta charset="utf-8">
         <title> Starboard Notebook Viewer </title>
         <meta name="viewport" content="width=device-width,initial-scale=1">
-        <link rel="icon" href="/dist/favicon.ico">
-        <link href="/dist/starboard-notebook.css" rel="stylesheet">
-		<link rel="preload" href="/dist/starboard-notebook.js" as="script">
+        <link rel="icon" href="https://twoxfh.github.io/starboard-editor/dist/favicon.ico">
+        <link href="https://twoxfh.github.io/starboard-editor/dist/starboard-notebook.css" rel="stylesheet">
+		<link rel="preload" href="https://twoxfh.github.io/starboard-editor/dist/starboard-notebook.js" as="script">
     </head>
     
     <body>
@@ -18,7 +18,7 @@
 			
             window.initialNotebookContent = ` `;
             errorNotebookContent = `# %% [markdown]\n# Something happened\n\nWe couldn't load the notebook`
-            window.starboardArtifactsUrl = `https://cdn.jsdelivr.net/npm/starboard-notebook@0.14.2/dist/`;
+            window.starboardArtifactsUrl = `https://twoxfh.github.io/starboard-editor/dist/`;
 
 
 			function file_extension_handler ( file_source ) {
@@ -58,7 +58,7 @@
 				window.initialNotebookContent = content
 				
 				const notebook_js = document.createElement('script')
-				notebook_js.src = "https://cdn.jsdelivr.net/npm/starboard-notebook@0.14.2/dist/starboard-notebook.js"
+				notebook_js.src = "https://twoxfh.github.io/starboard-editor/dist/starboard-notebook.js"
 				document.head.appendChild( notebook_js )
 			}
 			
