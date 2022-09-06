@@ -170,7 +170,9 @@
                     $('#button2').click( function () {
                         var a= [];
                         for (var i = 0; i < table.rows('.selected').data().length; i++) { 
-                            a.push(table.rows('.selected').data()[i].content);
+                            var test = table.rows('.selected').data()[i].content;
+                            var content = test.split(/[\.?!;]/).filter(sentence => sentence).map(sentence => `<li>${sentence}</li>`).join('');
+                            a.push(content);
                         }
                         $('#txtarea').val(a.join(' '));
                     } );
