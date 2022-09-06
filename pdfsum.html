@@ -171,10 +171,10 @@
                         var a= [];
                         for (var i = 0; i < table.rows('.selected').data().length; i++) { 
                             var test = table.rows('.selected').data()[i].content;
-                            var content = test.split(/[\.?!;]/).filter(sentence => sentence).map(sentence => `<li>${sentence}</li>`).join('');
+                            var content = test.split(/[\.?!;]/).filter(sentence => sentence).map(sentence => `${sentence}`).join(' ');
                             a.push(content);
                         }
-                        $('#txtarea').val(a.join(' '));
+                        $('#txtarea').val(a.join('\n\n'));
                     } );
 
                     $('#button3').click( function () {
