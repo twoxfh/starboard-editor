@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html style="font-size: 16px;">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+  </head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/1.10.100/pdf.min.js" ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.entry.min.js" ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/1.10.100/pdf.worker.min.js" ></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.3.js"></script>
+    <script src="bundleold.js"></script>
+    
+      <script type="text/javascript" src="https://cdn.datatables.net/1.10.7/js/jquery.dataTables.min.js"></script>
+      <script type="text/javascript" src="https://cdn.datatables.net/plug-ins/1.10.7/integration/bootstrap/3/dataTables.bootstrap.js"></script>
+      <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/plug-ins/1.10.7/integration/bootstrap/3/dataTables.bootstrap.css">
+      <link rel="stylesheet" type="text/css" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+      <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css">
+      
+      <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.0/bootstrap3-typeahead.min.js"></script>
+    <input type="file" id="file-id" name="file_name" onchange="ExtractText();">
+
+    <button id="button2">GetPages</button>
+    <button id="button3">Summarize</button>
+    <textarea id="txtarea"></textarea>
+    <textarea id="txtarea2"></textarea>
+    <div id="output"></div>
+    
+    <table border="0" cellspacing="5" cellpadding="5">
+        <tbody><tr>
+            <td>Minimum Page:</td>
+            <td><input type="text" id="min" name="min"></td>
+        </tr>
+        <tr>
+            <td>Maximum Page:</td>
+            <td><input type="text" id="max" name="max"></td>
+        </tr>
+    </tbody>
+    </table>
+    <table id="myTable" class="display" cellspacing="0" width="100%"></table>
+    <script>
+        var datass = '';
+        var DataArr = [];
+        PDFJS.workerSrc = '';
+
+        function ExtractText() {
+            var input = document.getElementById("file-id");
+            var fReader = new FileReader();
+            fReader.readAsDataURL(input.files[0]);
+            // console.log(input.files[0]);
+            fReader.onloadend = function (event) {
+                convertDataURIToBinary(event.target.result);
+            }
+        }
+
+        var BASE64_MARKER = ';base64,';
+
+        function convertDataURIToBinary(dataURI) {
+
+            var base64Index = dataURI.indexOf(BASE64_MARKER) + BASE64_MARKER.length;
+            var base64 = dataURI.substring(base64Index);
+            var raw = window.atob(base64);
+            var rawLength = raw.length;
+            var array = new Uint8Array(new ArrayBuffer(rawLength));
+
+            for (var i = 0; i < rawLength; i++) {
+                array[i] = raw.charCodeAt(i);
+            }
+            pdfAsArray(array)
+
+        }
+
+        function getPageText(pageNum, PDFDocumentInstance) {
+            // Return a Promise that is solved once the text of the page is retrieven
+            return new Promise(function (resolve, reject) {
+                PDFDocumentInstance.getPage(pageNum).then(function (pdfPage) {
+                    // The main trick to obtain the text of the PDF page, use the getTextContent method
+                    pdfPage.getTextContent().then(function (textContent) {
+                        var textItems = textContent.items;
+                        var finalString = "";
+
+                        // Concatenate the string of the item to the final string
+                        for (var i = 0; i < textItems.length; i++) {
+                            var item = textItems[i];
+
+                            finalString += item.str + " ";
+                        }
+
+                        // Solve promise with the text retrieven from the page
+                        resolve(finalString);
+                    });
+                });
+            });
+        }
+
+        function pdfAsArray(pdfAsArray) {
+
+            PDFJS.getDocument(pdfAsArray).then(function (pdf) {
+
+                var pdfDocument = pdf;
+                // Create an array that will contain our promises
+                var pagesPromises = [];
+                for (var i = 0; i < pdf.pdfInfo.numPages; i++) {
+                    // Required to prevent that i is always the total of pages
+                    (function (pageNumber) {
+                        // Store the promise of getPageText that returns the text of a page
+                        pagesPromises.push(getPageText(pageNumber, pdfDocument));
+                    })(i + 1);
+                }
+
+                // Execute all the promises
+                Promise.all(pagesPromises).then(function (pagesText) {
+
+                    // Display text of all the pages in the console
+                    // e.g ["Text content page 1", "Text content page 2", "Text content page 3" ... ]
+                    var headRemove = "";
+                    if(pagesText.length>2){
+                        for(var numChar1 = 0; numChar1 < pagesText[1].length; numChar1++){  
+                                if(pagesText[1].charAt(numChar1) === pagesText[2].charAt(numChar1)){
+                                    headRemove+= pagesText[1].charAt(numChar1);
+                                }else{
+                                    break;
+                                }
+                        }
+                    }
+                    for (var pageNum = 0; pageNum < pagesText.length; pageNum++) {
+                        pagesText[pageNum] = pagesText[pageNum].replaceAll(headRemove, '')
+                        DataArr.push({page:pageNum, content:pagesText[pageNum]});    
+                    }
+                    $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                        var min = parseInt($('#min').val(), 10);
+                        var max = parseInt($('#max').val(), 10);
+                        var age = parseFloat(data[0]) || 0; // use data for the age column
+                    
+                        if (
+                            (isNaN(min) && isNaN(max)) ||
+                            (isNaN(min) && age <= max) ||
+                            (min <= age && isNaN(max)) ||
+                            (min <= age && age <= max)
+                        ) {
+                            return true;
+                        }
+                        return false;
+                    });
+                    
+                    var table = $('#myTable').DataTable({
+                        autoWidth: false,
+                        data: DataArr,
+                        columns: [
+                            { "data": "page" },
+                            { "data": "content" }
+                    ] });
+
+                    $('#min, #max').keyup(function () {
+                        table.draw();
+                    });
+
+                    $('#myTable tbody').on( 'click', 'tr', function () {
+                        $(this).toggleClass('selected');
+                    } );
+                    $('#button').click(function () {
+                        var ids = $.map(table.rows('.selected').data(), function (item) {
+                            return item[0]
+                        });
+                        console.log(ids)
+                        alert(table.rows('.selected').data().length + ' row(s) selected');
+                    });
+
+                    $('#button2').click( function () {
+                        var a= [];
+                        for (var i = 0; i < table.rows('.selected').data().length; i++) { 
+                            a.push(table.rows('.selected').data()[i].content);
+                        }
+                        $('#txtarea').val(a.join(' '));
+                    } );
+
+                    $('#button3').click( function () {
+                        var sentences = $('#txtarea').val().trim();
+                        var title = $('#txtarea2').val().trim();
+                        summarizer.summarize(title, sentences, function(err, summary) {
+                            if(err) console.log("Something went wrong man!");
+                            var div = document.getElementById('output');
+                             $('#output').text(summary);
+                         });
+
+                    });
+
+            }), function (reason) {
+                // PDF loading error
+                console.error(reason);
+                }
+            });
+        };
+
+    </script>
+</body>
+</html>
