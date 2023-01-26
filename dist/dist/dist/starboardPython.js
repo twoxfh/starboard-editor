@@ -541,7 +541,8 @@ async function convertResult(data, runtime) {
         div.className = "rendered_html cell-output-html";
         const value = data.value;
         const katex = await runtime.exports.libraries.async.KaTeX();
-        katex.render(value.replace(/^(\$?\$?)([^]*)\1$/, "$2"), div, {
+        //katex.render(value.replace(/^(\$?\$?)([^]*)\1$/, "$2"), div, {
+        katex.render(value, div, {
             throwOnError: false,
             errorColor: " #cc0000",
             displayMode: true,
