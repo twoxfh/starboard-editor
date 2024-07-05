@@ -1,0 +1,375 @@
+<html lang="en"><head>
+  <meta charset="UTF-8">
+    
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+ 
+<link
+    rel="stylesheet"
+    type="text/css"
+    href="https://cdn.jsdelivr.net/npm/hierarchy-list/dist/style.css"
+/> 
+<style> 
+.phl-list {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.phl-list > * {
+    border-bottom: 1px solid #dadada;
+    list-style-type: none;
+    padding: 16px;
+}
+.phl-list > *:last-child {
+    border-bottom: none;
+}
+
+.phl-list .phl-list {
+    border: 1px solid #dadada;
+    margin-top: 10px;
+    border-radius: 4px;
+}
+.phl-drag {
+    position: absolute;
+    box-shadow: 0 0 4px black;
+    list-style-type: none;
+    opacity: 0.4;
+    pointer-events: none;
+    border-radius: 4px;
+}
+
+.phl-active {
+    opacity: 0.5;
+}
+
+.phl-label-group {
+    display: flex;
+    align-items: center;
+}
+
+.phl-item {
+    padding: 16px;
+}
+
+.phl-handle {
+    cursor: move;
+}
+
+button.phl-handle {
+    position: relative;
+    height: 12px;
+    width: 16px;
+    margin-right: 8px;
+    background: linear-gradient(to right, rgb(208, 212, 218), rgb(208, 212, 218));
+    background-size: 100% 2px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+button.phl-handle::before,
+button.phl-handle::after {
+    content: '';
+    position: absolute;
+    height: 2px;
+    width: 100%;
+    left: 0;
+    background: rgb(208, 212, 218);
+}
+
+button.phl-handle::before {
+    top: 0;
+}
+button.phl-handle::after {
+    bottom: 0;
+}
+
+.phl-expand,
+.phl-collapse,
+.phl-extract {
+    position: relative;
+    height: 20px;
+    width: 20px;
+    line-height: 12px;
+    color: #a7a7a7;
+    border-radius: 4px;
+}
+
+.phl-expand::after,
+.phl-collapse::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    height: 8px;
+    width: 8px;
+    border: 1px solid #a7a7a7;
+}
+
+.phl-expand::after {
+    border: 2px solid;
+    transform: translate(-50%, -75%) rotate(45deg);
+    border-left: none;
+    border-top: none;
+}
+.phl-collapse::after {
+    border: 2px solid;
+    transform: translate(-50%, -25%) rotate(45deg);
+    border-right: none;
+    border-bottom: none;
+}
+
+.phl-extract {
+    margin-right: 4px;
+    background-image: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cg id="evaUndoFill0"%3E%3Cg id="evaUndoFill1"%3E%3Cpath id="evaUndoFill2" fill="rgb(156, 163, 175)" d="M20.22 21a1 1 0 0 1-1-.76a8.91 8.91 0 0 0-7.8-6.69v1.12a1.78 1.78 0 0 1-1.09 1.64A2 2 0 0 1 8.18 16l-5.06-4.41a1.76 1.76 0 0 1 0-2.68l5.06-4.42a2 2 0 0 1 2.18-.3a1.78 1.78 0 0 1 1.09 1.64V7A10.89 10.89 0 0 1 21.5 17.75a10.29 10.29 0 0 1-.31 2.49a1 1 0 0 1-1 .76Z"%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E') !important;
+    background-size: contain;
+}
+.phl-label {
+    flex-grow: 1;
+}
+
+
+.phl-moving * {
+    cursor: move !important;
+}
+
+
+.card {
+    box-shadow: 0px 0px 3px 1px #ddd;
+}
+
+.phl-handle {
+    padding: .5rem .75rem;
+    border: 1px solid rgba(0, 0, 0, .07);
+    display: flex;
+    align-items: center;
+}
+
+.phl-handle:first-child {
+    border-radius: 0;
+}
+
+.phl-handle:last-child {
+    border-radius: 0;
+}
+
+.phl-handle i.fa-square {
+    flex-grow: 0;
+    cursor: pointer;
+    order: 1;
+}
+
+.phl-handle i.fa-check-square {
+    display: none;
+}
+
+.phl-handle i.fa-trash-alt {
+    flex-grow: 0;
+    cursor: pointer;
+    color: #dc3545;
+    order: 3;
+}
+
+.phl-handle i.fa-trash-alt:hover {
+    color: #af1e2c;
+}
+
+.phl-handle .todo-text {
+    flex-grow: 1;
+    margin: 0 10px;
+    order: 2;
+}
+
+.phl-handle.done i.fa-check-square {
+    flex-grow: 0;
+    cursor: pointer;
+    color: #28a745;
+    display: block;
+}
+
+phl-handle.done i.fa-square {
+    display: none;
+}
+
+.phl-handle.done .todo-text {
+    text-decoration: line-through;
+    color: #888;
+}
+
+[contenteditable=true] {
+  border: 1px dotted #999;
+}
+</style>
+
+  <script src="https://cdn.jsdelivr.net/npm/hierarchy-list/dist/hierarchy-list.umd.js"></script>
+  
+</head>
+
+<body translate="no">
+  <div class="container">
+  <div class="row">
+    <div class="col-lg-5 col-md-6 col-sm-8 mx-auto">
+      <div class="card my-5">
+        <h5 class="card-header bg-primary text-white">
+          Todo List
+        </h5>
+        <div class="card-body">
+          <div class="input-group mb-3">
+            <input type="text" id="search" class="form-control" placeholder="Search todo">
+            <div class="input-group-append">
+              <span class="input-group-text"> <i class="fas fa-search"></i> </span>
+            </div>
+          </div>
+          <div id="list-id">
+          <ul class="list-group mb-3"></ul>
+          </div>
+          <button id="clearBtn" type="button" class="btn btn-dark btn-sm">Clear All</button>
+        </div>
+        <div class="card-footer">
+          <form id="form">
+            <div class="input-group">
+              <input type="text" class="form-control" id="todo" placeholder="Add new todo item">
+              <div class="input-group-append">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+      <script id="rendered-js">
+// Define all UI variable
+const todoList = document.querySelector('.list-group');
+const form = document.querySelector('#form');
+const todoInput = document.querySelector('#todo');
+const clearBtn = document.querySelector('#clearBtn');
+const search = document.querySelector('#search');
+
+const list = HierarchyList.make('#list-id', {
+    // options
+});
+
+// Load all event listners
+allEventListners();
+
+
+// Functions of all event listners
+function allEventListners() {
+  // Add todo event
+  form.addEventListener('submit', addTodo);
+  // Remove and complete todo event
+  todoList.addEventListener('click', removeTodo);
+  // Clear or remove all todos
+  clearBtn.addEventListener('click', clearTodoList);
+  // Search todo event
+  search.addEventListener('keyup', searchTodo);
+}
+
+
+// Add todo item function
+function addTodo(e) {
+  if (todoInput.value !== '') {
+    // Create li element
+    const li = document.createElement('li');
+    // Add class
+    li.className = 'phl-handle2';
+    // Add complete and remove icon
+    li.innerHTML = `        <div class="phl-display">
+            <button class="phl-handle">
+                <div class="sr-only">Item Handle</div>
+            </button>
+            <div class="phl-label">`+todoInput.value+`</div>
+            <button class="phl-extract">
+                <div class="sr-only">Extract inner list</div>
+            </button>
+            <button class="phl-collapse">
+                <div class="sr-only">Collapse inner list</div>
+            </button>
+            <button class="phl-expand">
+                <div class="sr-only">Expand inner list</div>
+            </button>
+        </div><i class="far fa-square done-icon"></i>
+                        <i class="far fa-check-square done-icon"></i>
+                        <i class="far fa-trash-alt"></i>`;
+    // Create span element
+    const span = document.createElement('span');
+    // Add class
+   // span.className = 'todo-text';
+   // span.contentEditable="true";
+    // Create text node and append to span
+   // span.appendChild(document.createTextNode(todoInput.value));
+    // Append span to li
+    li.appendChild(span);
+    // Append li to ul (todoList)
+   // todoList.appendChild(li);
+    list.addItem(li);
+
+    // Clear input
+    todoInput.value = '';
+  } else {
+    alert('Please add todo');
+  }
+
+  e.preventDefault();
+}
+
+
+// Remove and complete todo item function
+
+
+function removeTodo(e) {
+  // Remove todo
+  if (e.target.classList.contains('fa-trash-alt')) {
+      let items = e.target.parentElement.parentElement.getElementsByTagName("li").length;
+    if (confirm('Are you sure')) {
+    	if(items < 2){
+    	 e.target.parentElement.parentElement.remove();
+    	} else {
+      		e.target.parentElement.remove();
+      }
+    }
+  }
+
+  // Complete todo
+  if (e.target.classList.contains('todo-text')) {
+    e.target.parentElement.classList.toggle('done');
+  }
+  if (e.target.classList.contains('done-icon')) {
+    e.target.parentElement.classList.toggle('done');
+  }
+}
+
+
+// Clear or remove all todos function
+function clearTodoList() {
+  todoList.innerHTML = '';
+}
+
+
+// Search todo function
+function searchTodo(e) {
+  const text = e.target.value.toLowerCase();
+  const allItem = document.querySelectorAll('.phl-handle');
+  for (let task of allItem) {
+    const item = task.textContent;
+    if (item.toLowerCase().indexOf(text) != -1) {
+      task.style.display = 'block';
+    } else {
+      task.style.display = 'none';
+    }
+  };
+}
+
+
+//# sourceURL=pen.js
+    </script>
+
+  
+
+
+
+</body></html>
