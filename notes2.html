@@ -1,0 +1,1000 @@
+<html><head>
+<style>
+.phl-list {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.phl-list > * {
+    border-bottom: 1px solid #dadada;
+    list-style-type: none;
+    padding: 16px;
+}
+.phl-list > *:last-child {
+    border-bottom: none;
+}
+
+.phl-list .phl-list {
+    border: 1px solid #dadada;
+    margin-top: 10px;
+    border-radius: 4px;
+}
+.phl-drag {
+    position: absolute;
+    box-shadow: 0 0 4px black;
+    list-style-type: none;
+    opacity: 0.4;
+    pointer-events: none;
+    border-radius: 4px;
+}
+
+.phl-active {
+    opacity: 0.5;
+}
+
+.phl-label-group {
+    display: flex;
+    align-items: center;
+}
+
+.phl-item {
+    padding: 16px;
+}
+
+.phl-handle {
+    cursor: move;
+}
+
+button.phl-handle {
+    position: relative;
+    height: 12px;
+    width: 16px;
+    margin-right: 8px;
+    background: linear-gradient(to right, rgb(208, 212, 218), rgb(208, 212, 218));
+    background-size: 100% 2px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+button.phl-handle::before,
+button.phl-handle::after {
+    content: '';
+    position: absolute;
+    height: 2px;
+    width: 100%;
+    left: 0;
+    background: rgb(208, 212, 218);
+}
+
+button.phl-handle::before {
+    top: 0;
+}
+button.phl-handle::after {
+    bottom: 0;
+}
+
+.phl-expand,
+.phl-collapse,
+.phl-extract {
+    position: relative;
+    height: 20px;
+    width: 20px;
+    line-height: 12px;
+    color: #a7a7a7;
+    border-radius: 4px;
+}
+
+.phl-expand::after,
+.phl-collapse::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    height: 8px;
+    width: 8px;
+    border: 1px solid #a7a7a7;
+}
+
+.phl-expand::after {
+    border: 2px solid;
+    transform: translate(-50%, -75%) rotate(45deg);
+    border-left: none;
+    border-top: none;
+}
+.phl-collapse::after {
+    border: 2px solid;
+    transform: translate(-50%, -25%) rotate(45deg);
+    border-right: none;
+    border-bottom: none;
+}
+
+.phl-extract {
+    margin-right: 4px;
+    background-image: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cg id="evaUndoFill0"%3E%3Cg id="evaUndoFill1"%3E%3Cpath id="evaUndoFill2" fill="rgb(156, 163, 175)" d="M20.22 21a1 1 0 0 1-1-.76a8.91 8.91 0 0 0-7.8-6.69v1.12a1.78 1.78 0 0 1-1.09 1.64A2 2 0 0 1 8.18 16l-5.06-4.41a1.76 1.76 0 0 1 0-2.68l5.06-4.42a2 2 0 0 1 2.18-.3a1.78 1.78 0 0 1 1.09 1.64V7A10.89 10.89 0 0 1 21.5 17.75a10.29 10.29 0 0 1-.31 2.49a1 1 0 0 1-1 .76Z"%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E') !important;
+    background-size: contain;
+}
+.phl-label {
+    flex-grow: 1;
+}
+
+
+.phl-moving * {
+    cursor: move !important;
+}
+</style>
+<script>
+(function(global, factory) {
+  typeof exports === "object" && typeof module !== "undefined" ? factory(exports) : typeof define === "function" && define.amd ? define(["exports"], factory) : (global = typeof globalThis !== "undefined" ? globalThis : global || self, factory(global["hierarchy-list"] = {}));
+})(this, function(exports2) {
+  "use strict";var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => {
+  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+  return value;
+};
+
+  const DEFAULT_CONFIG = {
+    listTag: "ul",
+    listSelector: "ul",
+    itemSelector: "li",
+    handleSelector: ".phl-handle",
+    listClass: ["phl-list"],
+    activeClass: ["phl-active"],
+    dragClass: ["phl-drag"],
+    threshold: 20,
+    context: 0,
+    expandBtn: ".phl-expand",
+    collapseBtn: ".phl-collapse",
+    extractBtn: ".phl-extract"
+  };
+  const CONTEXTS = /* @__PURE__ */ new Map();
+  class Context {
+    constructor(list) {
+      __publicField(this, "dragEl");
+      __publicField(this, "activeEl");
+      __publicField(this, "overEl");
+      __publicField(this, "from");
+      __publicField(this, "to");
+      __publicField(this, "lastMouseY");
+      __publicField(this, "lastStepX");
+      __publicField(this, "lastMove");
+      __publicField(this, "instances", []);
+      __publicField(this, "movedFrom");
+      this.lastMouseY = 0;
+      this.lastStepX = 0;
+      this.lastMove = 0;
+      this.instances.push(list);
+    }
+    register(list) {
+      this.instances.push(list);
+    }
+    dispatch(event) {
+      if (!this.activeEl) {
+        return;
+      }
+      for (let i = 0; i < this.instances.length; i++) {
+        const list = this.instances[i];
+        if (!list.getElement().contains(this.activeEl)) {
+          continue;
+        }
+        const events = list.events.get(event);
+        if (!events) {
+          return;
+        }
+        events.forEach((cb) => {
+          cb.call(list, {
+            item: this.activeEl,
+            from: this.from,
+            to: this.to
+          });
+        });
+        return;
+      }
+    }
+  }
+  class HierarchyList {
+    constructor(element, options) {
+      /**
+       * Context of this instance
+       */
+      __publicField(this, "ctx");
+      /**
+       * Root element of this instance
+       */
+      __publicField(this, "element");
+      /**
+       * Configuartions for this instance
+       */
+      __publicField(this, "opts");
+      /**
+       * A map of registered events
+       */
+      __publicField(this, "events", /* @__PURE__ */ new Map());
+      /**
+       * Stores if the device supports touch
+       */
+      __publicField(this, "hasTouch", "ontouchstart" in window || navigator.maxTouchPoints);
+      //@ts-ignore
+      __publicField(this, "onMouseMoveFn");
+      //@ts-ignore
+      __publicField(this, "onTouchMoveFn");
+      //@ts-ignore
+      __publicField(this, "cleanUpEvt");
+      if (typeof element === "string") {
+        this.element = find(element);
+        if (!this.element) {
+          throw new Error("Provided element does not exist!");
+        }
+      } else {
+        this.element = element;
+      }
+      if (typeof this.element.__hierarchy_list_saad === "undefined") {
+        this.element.__hierarchy_list_saad = true;
+      } else {
+        throw new Error(
+          "Trying to create multiple HierarchyList in one element!"
+        );
+      }
+      this.opts = { ...DEFAULT_CONFIG, ...options || {} };
+      if (["string", "number"].indexOf(typeof this.opts.context) === -1) {
+        this.opts.context = "_saad_";
+      }
+      let ctx = CONTEXTS.get(this.opts.context);
+      if (!ctx) {
+        ctx = new Context(this);
+        CONTEXTS.set(this.opts.context, ctx);
+      } else {
+        ctx.register(this);
+      }
+      this.ctx = ctx;
+      if (!this.opts.listSelector) {
+        this.opts.listSelector = this.opts.listTag;
+      }
+      ["listClass", "activeClass", "dragClass"].forEach((cKey) => {
+        if (typeof this.opts[cKey] === "string") {
+          this.opts[cKey] = this.opts[cKey].split(" ");
+        }
+      });
+      this.init();
+    }
+    /**
+     * A helper function for initialization
+     */
+    static make(element, options) {
+      return new HierarchyList(element, options);
+    }
+    init() {
+      this.onMouseMoveFn = (evt) => {
+        this.onDrag(evt);
+      };
+      this.onTouchMoveFn = (evt) => {
+        this.onTouchMove(evt);
+      };
+      this.cleanUpEvt = () => {
+        var _a;
+        (_a = this.ctx.dragEl) == null ? void 0 : _a.remove();
+        if (this.ctx.activeEl) {
+          rmClass(this.ctx.activeEl, this.opts.activeClass);
+          try {
+            this.ctx.dispatch("release");
+          } catch (error) {
+            console.error(error);
+          }
+        }
+        document.body.classList.remove("phl-moving");
+        this.ctx.dragEl = void 0;
+        this.ctx.activeEl = void 0;
+        this.ctx.overEl = void 0;
+        this.ctx.from = null;
+        this.ctx.to = null;
+        document.removeEventListener("mousemove", this.onMouseMoveFn);
+        document.removeEventListener("mouseup", this.cleanUpEvt);
+        document.removeEventListener("touchmove", this.onTouchMoveFn);
+        document.removeEventListener("touchend", this.cleanUpEvt);
+      };
+      findAll(this.opts.handleSelector, this.element).forEach((handle) => {
+        this.initHandle(handle);
+      });
+      this.element.addEventListener("mouseenter", () => {
+        if (!this.ctx.activeEl) {
+          return;
+        }
+        if (this.element.matches(this.opts.listSelector)) {
+          this.element.appendChild(this.ctx.activeEl);
+        } else {
+          const list = find(this.opts.listSelector, this.element);
+          if (list) {
+            this.moveTo(list);
+          }
+        }
+        if (this.ctx.movedFrom) {
+          const outEvts = this.ctx.movedFrom.events.get("moveout");
+          if (outEvts) {
+            outEvts.forEach((cb) => {
+              cb.call(this.ctx.movedFrom, {
+                item: this.ctx.activeEl
+              });
+            });
+          }
+          this.ctx.movedFrom = void 0;
+        }
+        const evts = this.events.get("movein");
+        if (!evts) {
+          return;
+        }
+        evts.forEach((cb) => {
+          cb.call(this, {
+            item: this.ctx.activeEl
+          });
+        });
+      });
+      this.element.addEventListener("mouseleave", () => {
+        if (!this.ctx.activeEl) {
+          return;
+        }
+        this.ctx.movedFrom = this;
+      });
+    }
+    /**
+     * Register events on the items that can be moved
+     */
+    initHandle(handle) {
+      const start = (evt) => {
+        if (evt.cancelable) {
+          evt.preventDefault();
+        } else {
+          return;
+        }
+        evt.stopPropagation();
+        this.ctx.dragEl = el.cloneNode(true);
+        addClass(this.ctx.dragEl, this.opts.dragClass);
+        document.body.appendChild(this.ctx.dragEl);
+        this.ctx.dragEl.style.position = "fixed";
+        this.ctx.dragEl.style.pointerEvents = "none";
+        document.body.classList.add("phl-moving");
+        this.ctx.activeEl = el;
+        addClass(this.ctx.activeEl, this.opts.activeClass);
+        document.addEventListener("mousemove", this.onMouseMoveFn);
+        document.addEventListener("mouseup", this.cleanUpEvt);
+        if (this.hasTouch) {
+          document.addEventListener("touchmove", this.onTouchMoveFn);
+          document.addEventListener("touchend", this.cleanUpEvt);
+        }
+        let posX, posY;
+        if ("x" in evt && "y" in evt) {
+          posX = evt.x;
+          posY = evt.y;
+        } else {
+          posX = evt.touches[0].clientX;
+          posY = evt.touches[0].clientY;
+        }
+        this.ctx.lastMouseY = posY;
+        this.ctx.lastStepX = posX;
+        this.ctx.dragEl.style.left = posX + "px";
+        this.ctx.dragEl.style.top = posY + "px";
+        this.ctx.from = this.ctx.activeEl.parentElement;
+        this.ctx.to = null;
+        this.ctx.dispatch("start");
+      };
+      const el = handle.closest(this.opts.itemSelector);
+      if (!el) {
+        return;
+      }
+      handle.addEventListener("mousedown", start);
+      if (this.hasTouch) {
+        handle.addEventListener("touchstart", (evt) => {
+          if (evt.touches.length !== 1) {
+            return;
+          }
+          start(evt);
+        });
+      }
+      el.addEventListener("mouseenter", () => this.onOver(el));
+      this.btnEvts(el);
+    }
+    btnEvts(el) {
+      const expand = find(this.opts.expandBtn, el);
+      const collapse = find(this.opts.collapseBtn, el);
+      const extract = find(this.opts.extractBtn, el);
+      const innerList = find(this.opts.listSelector, el);
+      const listStyle = innerList ? getComputedStyle(innerList) : {};
+      if (expand) {
+        if (listStyle.display === "none") {
+          expand.style.display = "";
+        } else {
+          expand.style.display = "none";
+        }
+        expand.addEventListener("click", () => {
+          this.expand(
+            expand.closest(this.opts.itemSelector)
+          );
+        });
+      }
+      if (collapse) {
+        if (listStyle.display === "none" || !innerList) {
+          collapse.style.display = "none";
+        } else {
+          collapse.style.display = "";
+        }
+        collapse.addEventListener("click", () => {
+          this.collapse(
+            collapse.closest(this.opts.itemSelector)
+          );
+        });
+      }
+      if (extract) {
+        if (!innerList || innerList.children.length === 0) {
+          innerList == null ? void 0 : innerList.remove();
+          extract.style.display = "none";
+        } else {
+          extract.style.display = "";
+        }
+        extract.addEventListener("click", () => {
+          this.extract(
+            extract.closest(this.opts.itemSelector)
+          );
+        });
+      }
+    }
+    /**
+     * Set the target element when dragged over this
+     */
+    onOver(el) {
+      if (!this.ctx.activeEl) {
+        return;
+      }
+      if (this.ctx.activeEl.contains(el)) {
+        this.ctx.overEl = void 0;
+        return;
+      }
+      this.ctx.overEl = el;
+    }
+    onTouchMove(evt) {
+      const touch = evt.touches[0];
+      const over = document.elementFromPoint(touch.clientX, touch.clientY);
+      const li = over == null ? void 0 : over.closest(this.opts.itemSelector);
+      if (li && this.element.contains(li)) {
+        this.onOver(li);
+      }
+      this.onDrag({
+        x: touch.clientX,
+        y: touch.clientY
+      });
+    }
+    onDrag(evt) {
+      const el = this.ctx.dragEl;
+      el.style.left = evt.x + "px";
+      el.style.top = evt.y + "px";
+      if (Date.now() - this.ctx.lastMove < 100) {
+        return;
+      }
+      this.ctx.lastMove = Date.now();
+      const lastYPos = this.ctx.lastMouseY;
+      this.ctx.lastMouseY = evt.y;
+      const lX = this.ctx.lastStepX;
+      if (evt.x - lX > this.opts.threshold) {
+        this.toRight();
+        this.ctx.lastStepX = evt.x;
+      } else if (lX - evt.x > this.opts.threshold) {
+        this.toLeft();
+        this.ctx.lastStepX = evt.x;
+        return;
+      }
+      const target = this.ctx.overEl;
+      if (!target) {
+        return;
+      }
+      const targetRect = target.getBoundingClientRect();
+      if (lastYPos < evt.y) {
+        if (evt.y > targetRect.top) {
+          this.moveTo(
+            target.parentElement,
+            target.nextElementSibling
+          );
+        }
+      } else {
+        if (evt.y < targetRect.top + targetRect.height) {
+          this.moveTo(target.parentElement, target);
+        }
+      }
+    }
+    /**
+     * Move the item one step right (nest)
+     */
+    toRight() {
+      var _a;
+      const active = this.ctx.activeEl;
+      const target = (_a = this.ctx.activeEl) == null ? void 0 : _a.previousElementSibling;
+      if (!active || !target) {
+        return;
+      }
+      let list = find(this.opts.listSelector, target);
+      if (!list) {
+        list = document.createElement(this.opts.listTag);
+        addClass(list, this.opts.listClass);
+        target.appendChild(list);
+      }
+      this.moveTo(list);
+      this.expand(target);
+      const extract = find(this.opts.extractBtn, target);
+      if (extract) {
+        extract.style.display = "";
+      }
+      this.ctx.dispatch("rightmove");
+    }
+    /**
+     * Move the item one step left (unnest)
+     */
+    toLeft() {
+      var _a;
+      const parentList = (_a = this.ctx.activeEl) == null ? void 0 : _a.parentElement;
+      const after = parentList == null ? void 0 : parentList.closest(this.opts.itemSelector);
+      if (!after) {
+        return;
+      }
+      this.moveTo(
+        after.parentElement,
+        after.nextElementSibling
+      );
+      this.ctx.dispatch("leftmove");
+    }
+    /**
+     * Move the item to the given parent and cleanup the old parent
+     */
+    moveTo(to, before = null) {
+      var _a;
+      if (!this.ctx.activeEl) {
+        return;
+      }
+      const list = (_a = this.ctx.activeEl) == null ? void 0 : _a.closest(
+        this.opts.listSelector
+      );
+      const lastOf = list == null ? void 0 : list.closest(this.opts.itemSelector);
+      this.ctx.from = this.ctx.activeEl.parentElement;
+      this.ctx.to = to;
+      this.ctx.dispatch("beforemove");
+      to.insertBefore(this.ctx.activeEl, before);
+      if (list && list.children.length === 0) {
+        list.remove();
+        if (lastOf) {
+          this.showOrHideActions(lastOf);
+        }
+      }
+      this.ctx.dispatch("aftermove");
+    }
+    /**
+     * Expand the inner list
+     */
+    expand(el) {
+      const expand = find(this.opts.expandBtn, el);
+      const collapse = find(this.opts.collapseBtn, el);
+      if (expand) {
+        expand.style.display = "none";
+      }
+      const list = find(this.opts.listSelector, el);
+      if (!list) {
+        return;
+      }
+      list.style.display = "";
+      if (collapse) {
+        collapse.style.display = "";
+      }
+    }
+    collapse(el) {
+      const expand = find(this.opts.expandBtn, el);
+      const collapse = find(this.opts.collapseBtn, el);
+      if (collapse) {
+        collapse.style.display = "none";
+      }
+      const list = find(this.opts.listSelector, el);
+      if (!list) {
+        return;
+      }
+      list.style.display = "none";
+      if (expand) {
+        expand.style.display = "";
+      }
+    }
+    extract(el) {
+      const subList = find(this.opts.listSelector, el);
+      const parent = el.parentElement;
+      if (!subList || !parent) {
+        this.showOrHideActions(el);
+        return;
+      }
+      this.ctx.from = subList;
+      this.ctx.to = parent;
+      const beforeOf = el.nextElementSibling;
+      while (subList.children.length) {
+        parent.insertBefore(subList.children[0], beforeOf);
+      }
+      subList.remove();
+      this.showOrHideActions(el);
+      this.ctx.dispatch("extract");
+      this.ctx.from = null;
+      this.ctx.to = null;
+    }
+    /**
+     * Showing all actions are used in `three` places,
+     * I think they deserve a separate function
+     */
+    showOrHideActions(el) {
+      const extract = find(this.opts.extractBtn, el);
+      const expand = find(this.opts.expandBtn, el);
+      const collapse = find(this.opts.collapseBtn, el);
+      const list = find(this.opts.listSelector, el);
+      if (expand) {
+        expand.style.display = list && list.style.display === "none" ? "" : "none";
+      }
+      if (collapse) {
+        collapse.style.display = list && list.style.display !== "none" ? "" : "none";
+      }
+      if (extract) {
+        extract.style.display = list ? "" : "none";
+      }
+    }
+    /**
+     * This function registers event handlers
+     * @param event name of the event
+     * @param callback function to execute
+     */
+    on(events, callback) {
+      if (typeof events === "string") {
+        events = [events];
+      }
+      events.forEach((event) => {
+        if (event === "change") {
+          this.on(["release", "moveout", "extract", "movein"], callback);
+          return;
+        }
+        let arr = this.events.get(event);
+        if (!arr) {
+          arr = [];
+          this.events.set(event, arr);
+        }
+        if (arr.indexOf(callback) === -1) {
+          arr.push(callback);
+        }
+      });
+      return this;
+    }
+    serialize(serializer) {
+      return HierarchyList.serialize(
+        this.element,
+        this.opts.listSelector,
+        serializer
+      );
+    }
+    serializeTree(serializer) {
+      return HierarchyList.serializeTree(
+        this.element,
+        this.opts.listSelector,
+        serializer
+      );
+    }
+    static serialize(element, listSelector = "ul,ol", serializer) {
+      if (element && !element.matches(listSelector)) {
+        element = find(listSelector, element);
+      }
+      if (!element) {
+        throw new Error("No element is given to serialize!");
+      }
+      const arr = [];
+      this._serializeFlat(
+        element,
+        -1,
+        arr,
+        listSelector,
+        serializer
+      );
+      return arr;
+    }
+    static _serializeFlat(list, parent, arr, listSelector, serializer) {
+      for (let i = 0; i < list.children.length; i++) {
+        const child = list.children[i];
+        const val = {
+          data: serializer ? serializer(child) : child.dataset,
+          parent
+        };
+        arr.push(val);
+        const inner = find(listSelector, child);
+        if (inner) {
+          this._serializeFlat(
+            inner,
+            arr.length - 1,
+            arr,
+            listSelector,
+            serializer
+          );
+        }
+      }
+    }
+    static serializeTree(element, listSelector = "ol,ul", serializer) {
+      if (element && !element.matches(listSelector)) {
+        element = find(listSelector, element);
+      }
+      if (!element) {
+        throw new Error("No element is given to serialize!");
+      }
+      const arr = [];
+      this._serializeTree(
+        element,
+        arr,
+        listSelector,
+        serializer
+      );
+      return arr;
+    }
+    static _serializeTree(list, arr, listSelector, serializer) {
+      for (let i = 0; i < list.children.length; i++) {
+        const child = list.children[i];
+        const children = [];
+        const inner = find("ul,li", child);
+        if (inner) {
+          this._serializeTree(
+            inner,
+            children,
+            listSelector,
+            serializer
+          );
+        }
+        arr.push({
+          data: serializer ? serializer(child) : child.dataset,
+          children
+        });
+      }
+    }
+    /**
+     * Get the main elemnt
+     * @returns {HTMLElement}
+     */
+    getElement() {
+      return this.element;
+    }
+    addItem(item, {
+      before,
+      after,
+      inside
+    } = {}) {
+      var _a;
+      if (!item.matches(this.opts.itemSelector)) {
+        console.error(
+          `[HierarchyList] provided item does not match: ${this.opts.itemSelector}`
+        );
+        return;
+      }
+      let handle = item;
+      if (!handle.matches(this.opts.handleSelector)) {
+        handle = find(this.opts.handleSelector, item);
+      }
+      if (!handle) {
+        console.error(
+          `[HierarchyList] provided item does not have any handle: '${this.opts.handleSelector}'`
+        );
+        return;
+      }
+      this.initHandle(handle);
+      if (typeof before === "string") {
+        before = find(before, this.element);
+      }
+      if (before) {
+        const list2 = before.closest(this.opts.listSelector);
+        list2 == null ? void 0 : list2.insertBefore(item, before.closest(this.opts.itemSelector));
+        const listParentItem = list2 == null ? void 0 : list2.closest(this.opts.itemSelector);
+        listParentItem && this.showOrHideActions(listParentItem);
+        return;
+      }
+      if (typeof after === "string") {
+        after = find(after, this.element);
+      }
+      if (after) {
+        const list2 = after.closest(this.opts.listSelector);
+        list2 == null ? void 0 : list2.insertBefore(
+          item,
+          (_a = after.closest(this.opts.itemSelector)) == null ? void 0 : _a.nextElementSibling
+        );
+        const listParentItem = list2 == null ? void 0 : list2.closest(this.opts.itemSelector);
+        listParentItem && this.showOrHideActions(listParentItem);
+        return;
+      }
+      if (typeof inside === "string") {
+        inside = find(inside, this.element);
+      }
+      if (inside) {
+        if (inside.matches(this.opts.listSelector)) {
+          inside.appendChild(item);
+          return;
+        }
+        let list2 = find(this.opts.listSelector, inside);
+        if (!list2) {
+          list2 = document.createElement(this.opts.listTag);
+          addClass(list2, this.opts.listClass);
+          inside.appendChild(list2);
+        }
+        list2.appendChild(item);
+        this.expand(list2);
+        const listParentItem = list2 == null ? void 0 : list2.closest(this.opts.itemSelector);
+        listParentItem && this.showOrHideActions(listParentItem);
+        return;
+      }
+      let list = this.element;
+      if (!list.matches(this.opts.listSelector)) {
+        list = find(this.opts.listSelector, list);
+      }
+      if (list) {
+        list.appendChild(item);
+      }
+    }
+  }
+  function find(selector, parent) {
+    return (parent || document).querySelector(selector);
+  }
+  function findAll(selector, parent) {
+    return (parent || document).querySelectorAll(selector);
+  }
+  function rmClass(el, classes) {
+    classes.forEach((name) => el.classList.remove(name));
+  }
+  function addClass(el, classes) {
+    classes.forEach((name) => el.classList.add(name));
+  }
+  function makeListItem(label, data = {}) {
+    const item = document.createElement("li");
+    item.className = "phl-item";
+    item.innerHTML = `
+    <div class="phl-label-group">
+        <button type="button" class="phl-handle"></button>
+        <div class="phl-label">${label}</div>
+        <button type="button" class="phl-extract"></button>
+        <button type="button" class="phl-collapse"></button>
+        <button type="button" class="phl-expand"></button>
+    </div>
+    `;
+    for (let key in data) {
+      item.dataset[key] = data[key];
+    }
+    return item;
+  }
+  if (window && typeof window.HierarchyList === "undefined") {
+    window.HierarchyList = HierarchyList;
+  }
+  exports2.HierarchyList = HierarchyList;
+  exports2.default = HierarchyList;
+  exports2.makeListItem = makeListItem;
+  Object.defineProperties(exports2, { __esModule: { value: true }, [Symbol.toStringTag]: { value: "Module" } });
+});
+</script>
+<script>
+async function save2(){
+    const output = window.document;
+	if(window.fileHandle) {} else {
+		 window.fileHandle = await showSaveFilePicker();
+	}
+	const writer = await window.fileHandle.createWritable(); 
+	await writer.write( output );
+	writer.close();
+}
+
+async function save() {
+  // create a new handle
+  const newHandle = await window.showSaveFilePicker();
+  const output = this.document.documentElement.outerHTML;
+  // create a FileSystemWritableFileStream to write to
+  const writableStream = await newHandle.createWritable();
+
+  // write our file
+  await writableStream.write(output);
+
+  // close the file and write the contents to disk.
+  await writableStream.close();
+}
+</script>
+</head>
+<body>
+<div id="list"><ul class="phl-list border m-4"><li class="phl-item" data-id="031f9485-f5c9-4491-9a19-e4ee25949919">
+	<div class="phl-label-group">
+		<button type="button" class="phl-handle"></button>
+		<div class="phl-label" contenteditable="true">Start - Control + Arrows navigate, Control + C change color. Orange(Do Now),Blue (Waiting),Green (Done)	</div>
+		<button type="button" class="phl-extract" style="display: none;"></button>
+		<button type="button" class="phl-collapse" style="display: none;"></button>
+		<button type="button" class="phl-expand" style="display: none;"></button>
+		<button type="button" data-inside="[data-id='031f9485-f5c9-4491-9a19-e4ee25949919']" onclick="add(this);" class="phl-inside" style="display:none;">&gt;</button>
+		<button type="button" data-before="[data-id='031f9485-f5c9-4491-9a19-e4ee25949919']" onclick="add(this);" class="phl-before" style="display:none;">^</button>
+		<button type="button" data-after="[data-id='031f9485-f5c9-4491-9a19-e4ee25949919']" onclick="add(this);" class="phl-after" style="display:none;">+</button>
+		<button type="button" onclick="backward(this);" class="phl-outside" style="display:none;">&lt;</button>
+		<button type="button" data-colorindex="0" onclick="colorSwitch(this);" class="phl-color">C</button>
+	</div>
+	</li></ul></div>
+<button type="button" onclick="remove();" class="phl-delete">Delete Items in Red</button>
+<button type="button" onclick="save();" class="phl-save">Save</button>
+
+
+<script>
+const list = HierarchyList.make('#list', {
+});
+
+function makeListItem(label, data = {}) {
+	const item = document.createElement("li");
+	item.className = "phl-item";
+	item.innerHTML = `
+	<div class="phl-label-group">
+		<button type="button" class="phl-handle"></button>
+		<div class="phl-label" contentEditable="true">${label}</div>
+		<button type="button" class="phl-extract"></button>
+		<button type="button" class="phl-collapse"></button>
+		<button type="button" class="phl-expand"></button>
+		<button type="button" data-inside="[data-id='${data.id}']" onclick="add(this);" class="phl-inside" style="display:none;">></button>
+		<button type="button" data-before="[data-id='${data.id}']" onclick="add(this);" class="phl-before" style="display:none;">^</button>
+		<button type="button" data-after="[data-id='${data.id}']" onclick="add(this);" class="phl-after" style="display:none;">+</button>
+		<button type="button" onclick="backward(this);" class="phl-outside" style="display:none;"><</button>
+		<button type="button" data-colorindex="0" onclick="colorSwitch(this);" class="phl-color">C</button>
+	</div>
+	`;
+	for (let key in data) {
+	  item.dataset[key] = data[key];
+	}
+	return item;
+};
+
+//list.addItem(makeListItem("Start - Control + Arrows navigate, Control + C change color. Orange(Do Now),Blue (Waiting),Green (Done)	",{id:crypto.randomUUID()}));
+
+
+function add(e) {
+	let id = crypto.randomUUID();
+	list.addItem(makeListItem("",{id:id}), e.dataset);
+	document.querySelector(`li[data-id='${id}'] > .phl-label-group > .phl-label`).focus();
+}
+
+function remove(e) {
+	if (confirm('Are you sure')) {
+	const listitems = document.querySelectorAll('li');
+	listitems.forEach(item => {
+		if (item.style.backgroundColor=="rgb(255, 0, 0)") {
+			item.remove();
+		} else {}
+	});
+ 	const lists = document.querySelectorAll('ul:empty');
+	lists.forEach(item => {
+		item.remove();
+	});
+	}
+}
+
+function backward(e) {
+	let child = event.target.parentElement.parentElement.parentElement.parentElement.querySelector('.phl-after');
+	child.click();
+}
+
+
+function colorSwitch(e){
+  colorindex = parseInt(e.dataset.colorindex);
+  const colors = ['#ffffff', '#fff199', '#99cfff', '#d1ff99','#000000','#ff0000'];
+  e.parentElement.parentElement.style.backgroundColor = colors[colorindex];
+  e.dataset.colorindex = (colorindex + 1) > (colors.length - 1) ? 0 : (colorindex + 1); // set-up for getting next color
+}
+
+document.addEventListener('keydown', function(event) {
+    if(event.keyCode == 39 && event.ctrlKey) {
+        let child = event.target.parentElement.querySelector('.phl-inside');
+		child.click();
+    }
+    else if(event.keyCode == 38 && event.ctrlKey) {
+        let child = event.target.parentElement.querySelector('.phl-before');
+		child.click();
+    }
+	else if(event.keyCode == 40 && event.ctrlKey) {
+        let child = event.target.parentElement.querySelector('.phl-after');
+		child.click();
+    }
+	else if(event.keyCode == 67 && event.ctrlKey) {
+        let child = event.target.parentElement.querySelector('.phl-color');
+		child.click();
+    }
+	else if(event.keyCode == 37 && event.ctrlKey) {
+        let child = event.target.parentElement.parentElement.parentElement.parentElement.querySelector('.phl-after');
+		child.click();
+    }
+});
+</script>
+</body></html>
