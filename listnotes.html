@@ -634,7 +634,7 @@ m-4"></ul></div> <div class="options">
 const colors = ['#ffffff', '#fff199', '#99cfff', 
 '#d1ff99','#000000','#ff0000'];
   
-if(document.querySelector("#list").childNodes.length > 0) { 
+if(document.querySelector("#list").childNodes.length < 1) { 
 list.addItem(makeListItem("Start - Control + Arrows navigate, Control + 
 C change color. Orange(Do Now),Blue (Waiting),Green 
 (Done)",{id:crypto.randomUUID()}));
