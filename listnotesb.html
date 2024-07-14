@@ -879,13 +879,24 @@ var __publicField = (obj, key, value) => {
 	<input type="file" onchange="load(this);"/>
 </div>
 <script>
+//initialize list
 const list = HierarchyList.make('#list', {
 });
 
+//colors
 const colors = ['#ffffff', '#fff199', '#99cfff', '#d1ff99','#000000','#ff0000']; 
-if(document.querySelector("#list").childNodes.length == 1) {
+
+//load cache
+const storedData = localStorage.getItem('userdata')
+if (storedData) {
+  loadprocess(JSON.parse(storedData));
+} else {}
+
+//if no cache add default
+if(document.querySelector("#list > ul").childNodes.length < 1) {
 list.addItem(makeListItem("Start - Control + Arrows navigate, Control + C change color. Orange(Do Now),Blue (Waiting),Green (Done)",{id:crypto.randomUUID()}));
 } else {} 
+
 
 function makeListItem(label, data = {}) {
 	const item = document.createElement("li");
@@ -893,7 +904,7 @@ function makeListItem(label, data = {}) {
 	item.innerHTML = `
 	<div class="phl-label-group">
 		<button type="button" class="phl-handle"></button>
-		<div class="phl-label" contentEditable="true">${label}</div>
+		<div class="phl-label" contentEditable="true" onfocusout="localsave();">${label}</div>
 		<button type="button" data-after="[data-id='${data.id}']" onclick="add(this);" class="phl-after">+</button>
 		<button type="button" data-inside="[data-id='${data.id}']" onclick="add(this);" class="phl-inside">></button>
 		<button type="button" data-before="[data-id='${data.id}']" onclick="add(this);" class="phl-before">^</button>
@@ -910,23 +921,48 @@ function makeListItem(label, data = {}) {
 	return item;
 };
 
-async function save() {
+function extract(){
 	const data = list.serialize((el) => { 
 			const data = {...el.dataset}; 
 			data.startlabel = el.querySelector('.phl-label')?.innerHTML; 
 			return data;
 	});
-  const newHandle = await window.showSaveFilePicker();
-  const writableStream = await newHandle.createWritable();
-  await writableStream.write(JSON.stringify(data));
-  await writableStream.close();
+	return data;
 }
 
+function localsave() {
+  const data = JSON.stringify(extract());
+  localStorage.setItem('userdata', data)
+}
+
+async function save() {
+/*  const data = JSON.stringify(extract());
+  const newHandle = await window.showSaveFilePicker();
+  const writableStream = await newHandle.createWritable();
+  await writableStream.write(data);
+  await writableStream.close();
+*/
+downloadObjectAsJson(extract(),'data');
+}
+
+function downloadObjectAsJson(exportObj, exportName){
+	var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));
+	var downloadAnchorNode = document.createElement('a');
+	downloadAnchorNode.setAttribute("href",     dataStr);
+	downloadAnchorNode.setAttribute("download", exportName + ".json");
+	document.body.appendChild(downloadAnchorNode); // required for firefox
+	downloadAnchorNode.click();
+	downloadAnchorNode.remove();
+}
+  
 async function load(e) {
 	const file = e.files.item(0)
     const text = await file.text();
-	const data = JSON.parse(text);
-	
+    const data = JSON.parse(text);
+	loadprocess(data);
+}
+
+function loadprocess(data) {
     data.forEach((element, index, array) => {
 		let el = makeListItem(element.data.startlabel, element.data);
 		if(element.data.color) {
