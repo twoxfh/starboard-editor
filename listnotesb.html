@@ -936,12 +936,6 @@ function localsave() {
 }
 
 async function save() {
-/*  const data = JSON.stringify(extract());
-  const newHandle = await window.showSaveFilePicker();
-  const writableStream = await newHandle.createWritable();
-  await writableStream.write(data);
-  await writableStream.close();
-*/
 downloadObjectAsJson(extract(),'data');
 }
 
@@ -998,6 +992,7 @@ function remove(e) {
 		item.remove();
 	});
 	}
+	localsave();
 }
 
 function backward(e) {
@@ -1014,6 +1009,7 @@ function colorSwitch(e){
   let increment_color = (colorindex + 1) > (colors.length - 1) ? colors[0] : colors[(colorindex + 1)];
   e.parentElement.parentElement.dataset.color = increment_color;
   e.parentElement.parentElement.style.backgroundColor = increment_color;
+  localsave();
 }
 
 document.addEventListener('keydown', function(event) {
@@ -1035,8 +1031,6 @@ function search(e) {
     }
   };
 }
-
-
 </script>
 
 </body></html>
