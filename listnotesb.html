@@ -118,10 +118,15 @@ button.phl-handle::after {
     flex-grow: 1;
 }
 
-
 .phl-moving * {
     cursor: move !important;
 }
+
+.phl-item::before
+{
+    content : '\1F4C5' " [" attr(data-dates) "] " '\1F46A' "[" attr(data-people) "] " '\e210' "[" attr(data-tags) "]";
+}
+
 </style>
 <script>
 (function(global, factory) {
@@ -876,6 +881,11 @@ var __publicField = (obj, key, value) => {
 	<button type="button" onclick="document.querySelector('#list > ul').innerHTML = '';">Clear</button>
 	<input type="text" id="search" class="form-control" placeholder="Search">
 	<button type="button" onclick="search(this);">Search</button>
+<textarea id="template"></textarea>
+
+    <select id="qs" onchange="this.previousElementSibling.value=this.value">
+        <option value="li:has(li[data-id='${id}']), li[data-id='${id}'] li, li[data-id='${id}']">Default View</option>
+    </select>
 	<input type="file" onchange="load(this);"/>
 </div>
 <script>
@@ -885,6 +895,15 @@ const list = HierarchyList.make('#list', {
 
 //colors
 const colors = ['#ffffff', '#fff199', '#99cfff', '#d1ff99','#000000','#ff0000']; 
+
+var templatelist = document.getElementById('qs');
+
+colors.forEach(function(item){
+   var option = document.createElement('option');
+   option.value = "li:has(li[data-id='${id}']), li[data-id='${id}'] li, li[data-id='${id}'][data-color='" + item + "']";
+   option.innerHTML = item;
+   templatelist.appendChild(option);
+});
 
 //load cache
 const storedData = localStorage.getItem('userdata')
@@ -904,12 +923,12 @@ function makeListItem(label, data = {}) {
 	item.innerHTML = `
 	<div class="phl-label-group">
 		<button type="button" class="phl-handle"></button>
-		<div class="phl-label" contentEditable="true" onfocusout="localsave();">${label}</div>
+		<div class="phl-label" contentEditable="true" onfocusout="saveit(this);">${label}</div>
 		<button type="button" data-after="[data-id='${data.id}']" onclick="add(this);" class="phl-after">+</button>
 		<button type="button" data-inside="[data-id='${data.id}']" onclick="add(this);" class="phl-inside">></button>
 		<button type="button" data-before="[data-id='${data.id}']" onclick="add(this);" class="phl-before">^</button>
 		<button type="button" onclick="backward(this);" class="phl-outside"><</button>
-		<button type="button" data-colorindex="0" onclick="colorSwitch(this);" class="phl-color">C</button>
+		<button type="button" onclick="colorSwitch(this);" class="phl-color">C</button>
 		<button type="button" class="phl-extract"></button>
 		<button type="button" class="phl-collapse"></button>
 		<button type="button" class="phl-expand"></button>
@@ -923,14 +942,41 @@ function makeListItem(label, data = {}) {
 
 function extract(){
 	const data = list.serialize((el) => { 
+			saveit(el);
 			const data = {...el.dataset}; 
-			data.startlabel = el.querySelector('.phl-label')?.innerHTML; 
+			data.label = el.querySelector('.phl-label')?.innerHTML; 
 			return data;
 	});
 	return data;
 }
 
-function localsave() {
+function extractdata(text, regstr) {
+var regex = new RegExp(regstr, 'g'); 
+let result = Array.from(text.matchAll(regex), x=>x[1]);
+result.sort();
+return result.join(" ");
+} 
+
+function saveit(e) {
+  switch (e.className) {
+  case 'phl-label':
+	  e.parentElement.parentElement.dataset.label = e.innerHTML;
+	  e.parentElement.parentElement.dataset.tags = extractdata(e.innerHTML,'#([a-zA-Z0-9_]+)');
+	  e.parentElement.parentElement.dataset.people = extractdata(e.innerHTML,'@([a-zA-Z0-9_]+)');
+	  e.parentElement.parentElement.dataset.dates = extractdata(e.innerHTML,'([0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9])');
+	  localsave();
+	  break;
+  
+  case 'phl-item':
+	  e.dataset.label = e.innerHTML;
+	  e.dataset.tags = extractdata(e.innerHTML,'#([a-zA-Z0-9_]+)');
+	  e.dataset.people = extractdata(e.innerHTML,'@([a-zA-Z0-9_]+)');
+	  e.dataset.dates = extractdata(e.innerHTML,'([0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9])');
+	  break;  
+  }
+}
+
+function localsave() {  
   const data = JSON.stringify(extract());
   localStorage.setItem('userdata', data)
 }
@@ -958,7 +1004,8 @@ async function load(e) {
 
 function loadprocess(data) {
     data.forEach((element, index, array) => {
-		let el = makeListItem(element.data.startlabel, element.data);
+		let el = makeListItem(element.data.label, element.data);
+		saveit(el);
 		if(element.data.color) {
 			colors.indexOf(element.data.color) - 1
 			el.style.backgroundColor = element.data.color;
@@ -971,11 +1018,11 @@ function loadprocess(data) {
 			list.addItem(el);			
 		}
 	});
-}
+   }
 
 function add(e) {
 	let id = crypto.randomUUID();
-	list.addItem(makeListItem("",{id:id, createDate:new Date().toLocaleString()}), e.dataset);
+	list.addItem(makeListItem("",{id:id, createDate:new Date().toLocaleString(), color: colors[0]}), e.dataset);
 	document.querySelector(`li[data-id='${id}'] > .phl-label-group > .phl-label`).focus();
 }
 
@@ -1012,24 +1059,40 @@ function colorSwitch(e){
   localsave();
 }
 
-document.addEventListener('keydown', function(event) {
+/*document.addEventListener('keydown', function(event) {
 	if(event.keyCode == 67 && event.ctrlKey) {
         let child = event.target.parentElement.querySelector('.phl-color');
 		child.click();
     }
 });
+*/
+
+function compileTemplate(template, args)  {
+    return Object.entries(args).reduce(
+        (result, [arg, val]) => result.replaceAll(`$\{${arg}}`, `${val}`),
+        template,
+    )
+}
 
 function search(e) {
   const text = e.previousElementSibling.value.toLowerCase();
+  const template = e.nextElementSibling.value;
   const allItem = document.querySelectorAll('.phl-label');
+  
   for (let task of allItem) {
-    const item = task.textContent;
-    if (item.toLowerCase().indexOf(text) != -1) {
-      task.parentElement.style.display = '';
-    } else {
-      task.parentElement.style.display = 'none';
-    }
-  };
+	task.parentElement.parentElement.style.display = 'none';
+  }
+  for (let task of allItem){
+  const item = task.textContent;
+	if(item.toLowerCase().indexOf(text) !=-1) {
+	  const id = task.parentElement.parentElement.dataset.id;
+	  const show = compileTemplate(template, {id:id});
+	  const getItems = document.querySelectorAll(show);
+	  for (let task of getItems) {
+		task.style.display = '';
+	  }
+	}
+  }
 }
 </script>
 
