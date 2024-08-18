@@ -121,12 +121,15 @@ button.phl-handle::after {
 .phl-moving * {
     cursor: move !important;
 }
-
+/*
 .phl-item::before
 {
     content : '\1F4C5' " [" attr(data-dates) "] " '\1F46A' "[" attr(data-people) "] " '\e210' "[" attr(data-tags) "]";
 }
-
+*/
+textarea {
+width: 100%;
+}
 </style>
 <script>
 (function(global, factory) {
@@ -880,9 +883,9 @@ var __publicField = (obj, key, value) => {
 	<button type="button" onclick="save();" class="phl-save">Save</button>
 	<button type="button" onclick="document.querySelector('#list > ul').innerHTML = '';">Clear</button>
 	<input type="text" id="search" class="form-control" placeholder="Search">
-	<button type="button" onclick="search(this);">Search</button>
-<textarea id="template"></textarea>
-
+	<button type="button" onclick="search(this.parentElement.querySelector('#search').value.toLowerCase(),this.parentElement.querySelector('#qs').value);">Search</button>
+	<p></p>
+	<textarea id="template">li:has(li[data-id='${id}']), li[data-id='${id}'] li, li[data-id='${id}']</textarea>
     <select id="qs" onchange="this.previousElementSibling.value=this.value">
         <option value="li:has(li[data-id='${id}']), li[data-id='${id}'] li, li[data-id='${id}']">Default View</option>
     </select>
@@ -913,7 +916,7 @@ if (storedData) {
 
 //if no cache add default
 if(document.querySelector("#list > ul").childNodes.length < 1) {
-list.addItem(makeListItem("Start - Control + Arrows navigate, Control + C change color. Orange(Do Now),Blue (Waiting),Green (Done)",{id:crypto.randomUUID()}));
+	list.addItem(makeListItem("Start - Control + Arrows navigate, Control + C change color. Orange(Do Now),Blue (Waiting),Green (Done)",{id:crypto.randomUUID()}));
 } else {} 
 
 
@@ -923,12 +926,7 @@ function makeListItem(label, data = {}) {
 	item.innerHTML = `
 	<div class="phl-label-group">
 		<button type="button" class="phl-handle"></button>
-		<div class="phl-label" contentEditable="true" onfocusout="saveit(this);">${label}</div>
-		<button type="button" data-after="[data-id='${data.id}']" onclick="add(this);" class="phl-after">+</button>
-		<button type="button" data-inside="[data-id='${data.id}']" onclick="add(this);" class="phl-inside">></button>
-		<button type="button" data-before="[data-id='${data.id}']" onclick="add(this);" class="phl-before">^</button>
-		<button type="button" onclick="backward(this);" class="phl-outside"><</button>
-		<button type="button" onclick="colorSwitch(this);" class="phl-color">C</button>
+		<div class="phl-label" contentEditable="true" onfocusin="menu(this);" onfocusout="saveit(this);">${label}</div>
 		<button type="button" class="phl-extract"></button>
 		<button type="button" class="phl-collapse"></button>
 		<button type="button" class="phl-expand"></button>
@@ -939,6 +937,50 @@ function makeListItem(label, data = {}) {
 	}
 	return item;
 };
+
+function menu(e) {
+  if(document.querySelectorAll('.menu')) {
+      const menuitems = document.querySelectorAll('.menu');
+	  menuitems.forEach((menuItem) => {
+		menuItem.parentNode.removeChild(menuItem);
+	  });
+  }	
+	const getid = e.parentElement.parentElement.dataset.id;
+	const divcolor = e.parentElement.parentElement.dataset.color;
+
+	e.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" data-after="[data-id='${getid}']" onclick="add(this);" class="phl-after">+</button>`)
+	e.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" data-inside="[data-id='${getid}']" onclick="add(this);" class="phl-inside">></button>`)
+	e.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" data-before="[data-id='${getid}']" onclick="add(this);" class="phl-before">^</button>`)
+	if (e.parentElement.parentElement.parentElement.parentElement.dataset.id){
+		const getid2 = e.parentElement.parentElement.parentElement.parentElement.dataset.id;
+		e.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" data-after="[data-id='${getid2}']" onclick="add(this);" class="phl-parentafter"><</button>`)
+	}
+	e.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" onclick="colorSwitch(this);" class="phl-color">C</button>`)
+	e.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" onclick="focusmode('${getid}');">&#128064;</button>`)
+	e.parentElement.insertAdjacentHTML('beforeend', `<input class="menu" onchange="divcolor(this)" value ="${divcolor}" type="color"/>`)
+}
+
+function divcolor(e){
+  e.parentElement.parentElement.dataset.color = e.value;
+  e.parentElement.parentElement.style.backgroundColor = e.value;
+  localsave();
+}
+
+function focusmode(id) {
+  const allItem = document.querySelectorAll('.phl-label');
+  const template = `li:has(li[data-id='${id}']), li[data-id='${id}'] li, li[data-id='${id}']`;
+
+  for (let task of allItem) {
+	task.parentElement.parentElement.style.display = 'none';
+  }
+  for (let task of allItem){
+	  const show = compileTemplate(template, {id:id});
+	  const getItems = document.querySelectorAll(show);
+	  for (let task of getItems) {
+		task.style.display = '';
+	  }
+	}
+  }
 
 function extract(){
 	const data = list.serialize((el) => { 
@@ -951,27 +993,66 @@ function extract(){
 }
 
 function extractdata(text, regstr) {
-var regex = new RegExp(regstr, 'g'); 
-let result = Array.from(text.matchAll(regex), x=>x[1]);
-result.sort();
-return result.join(" ");
+	var regex = new RegExp(regstr, 'g'); 
+	let result = Array.from(text.matchAll(regex), x=>x[1]);
+	result.sort();
+	return result.join(" ");
 } 
 
+function stringcolor(string, saturation = 100, lightness = 85) {
+  let hash = 0;
+  for (let i = 0; i < string.length; i++) {
+	hash = string.charCodeAt(i) + ((hash << 5) - hash);
+	hash = hash & hash;
+  }
+  return `hsl(${(hash % 360)}, ${saturation}%, ${lightness}%)`;
+}
+
+function round(value, precision) {
+    var multiplier = Math.pow(10, precision || 0);
+    return Math.round(value * multiplier) / multiplier;
+}
+
+function datecompare(date) {
+	var today = new Date();
+	var date_to_reply = new Date(date);
+	var timeinmilisec = date_to_reply.getTime() - today.getTime();
+	var days = Math.ceil(timeinmilisec / (1000 * 60 * 60 * 24));
+	if(days > 7 || days < 7) {
+	days = round(days/7,1) + ' w';
+	} else{
+	days =  days + ' d';
+	}
+	return days;
+}
+
 function saveit(e) {
-  switch (e.className) {
-  case 'phl-label':
-	  e.parentElement.parentElement.dataset.label = e.innerHTML;
-	  e.parentElement.parentElement.dataset.tags = extractdata(e.innerHTML,'#([a-zA-Z0-9_]+)');
-	  e.parentElement.parentElement.dataset.people = extractdata(e.innerHTML,'@([a-zA-Z0-9_]+)');
-	  e.parentElement.parentElement.dataset.dates = extractdata(e.innerHTML,'([0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9])');
+	function input(e) {
+		e.querySelector('.phl-label').innerHTML = e.querySelector('.phl-label').innerHTML.replace(/<sup>.*?<\/sup>/g,'');
+		var text = e.querySelector('.phl-label').innerText;
+		function colorit(regex) {
+			text = text.replaceAll(new RegExp(regex,'g'), function(m) {
+			return `<span style="background-color: ${stringcolor(m)}">${m}</span>`});
+			e.querySelector('.phl-label').innerHTML = text;	
+		}
+		function dateit(regex) {
+			text = text.replaceAll(new RegExp(regex,'g'), function(m) {
+			return `<span style="background-color: #grey">${m}<sup>${datecompare(m)}</sup></span>`});
+			e.querySelector('.phl-label').innerHTML = text;	
+		}
+		colorit('@([a-zA-Z0-9_]+)');
+		colorit('#([a-zA-Z0-9_]+)');
+		dateit('([0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9])');	
+		e.dataset.label = e.innerText;
+	}
+    switch (e.className) {
+    case 'phl-label':
+	  input(e.parentElement.parentElement);
 	  localsave();
 	  break;
   
-  case 'phl-item':
-	  e.dataset.label = e.innerHTML;
-	  e.dataset.tags = extractdata(e.innerHTML,'#([a-zA-Z0-9_]+)');
-	  e.dataset.people = extractdata(e.innerHTML,'@([a-zA-Z0-9_]+)');
-	  e.dataset.dates = extractdata(e.innerHTML,'([0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9])');
+    case 'phl-item':
+	  input(e);
 	  break;  
   }
 }
@@ -1042,11 +1123,6 @@ function remove(e) {
 	localsave();
 }
 
-function backward(e) {
-	let child = event.target.parentElement.parentElement.parentElement.parentElement.querySelector('.phl-after');
-	child.click();
-}
-
 function colorSwitch(e){
   let color = '#ffffff';   
   if (e.parentElement.parentElement.dataset.color) {
@@ -1059,14 +1135,6 @@ function colorSwitch(e){
   localsave();
 }
 
-/*document.addEventListener('keydown', function(event) {
-	if(event.keyCode == 67 && event.ctrlKey) {
-        let child = event.target.parentElement.querySelector('.phl-color');
-		child.click();
-    }
-});
-*/
-
 function compileTemplate(template, args)  {
     return Object.entries(args).reduce(
         (result, [arg, val]) => result.replaceAll(`$\{${arg}}`, `${val}`),
@@ -1074,11 +1142,8 @@ function compileTemplate(template, args)  {
     )
 }
 
-function search(e) {
-  const text = e.previousElementSibling.value.toLowerCase();
-  const template = e.nextElementSibling.value;
-  const allItem = document.querySelectorAll('.phl-label');
-  
+function search(text, template) {
+  const allItem = document.querySelectorAll('.phl-label');  
   for (let task of allItem) {
 	task.parentElement.parentElement.style.display = 'none';
   }
@@ -1094,6 +1159,8 @@ function search(e) {
 	}
   }
 }
+
+
 </script>
 
 </body></html>
