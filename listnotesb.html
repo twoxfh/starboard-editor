@@ -116,6 +116,7 @@ button.phl-handle::after {
 }
 .phl-label {
     flex-grow: 1;
+	white-space: pre;
 }
 
 .phl-moving * {
@@ -1018,7 +1019,7 @@ function datecompare(date) {
 	var date_to_reply = new Date(date);
 	var timeinmilisec = date_to_reply.getTime() - today.getTime();
 	var days = Math.ceil(timeinmilisec / (1000 * 60 * 60 * 24));
-	if(days > 7 || days < 7) {
+	if(days > 7 || days < -7) {
 	days = round(days/7,1) + ' w';
 	} else{
 	days =  days + ' d';
