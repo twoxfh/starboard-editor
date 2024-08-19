@@ -967,8 +967,8 @@ function menu(e) {
 }
 
 function divcolor(e){
-  e.parentElement.parentElement.dataset.color = e.value;
-  e.parentElement.parentElement.style.backgroundColor = e.value;
+  e.parentElement.dataset.color = e.value;
+  e.parentElement.style.backgroundColor = e.value;
   localsave();
 }
 
@@ -1132,13 +1132,13 @@ function remove(e) {
 
 function colorSwitch(e){
   let color = '#ffffff';   
-  if (e.parentElement.parentElement.dataset.color) {
-	color = e.parentElement.parentElement.dataset.color;
+  if (e.parentElement.dataset.color) {
+	color = e.parentElement.dataset.color;
   }
   let colorindex = colors.indexOf(color);
   let increment_color = (colorindex + 1) > (colors.length - 1) ? colors[0] : colors[(colorindex + 1)];
-  e.parentElement.parentElement.dataset.color = increment_color;
-  e.parentElement.parentElement.style.backgroundColor = increment_color;
+  e.parentElement.dataset.color = increment_color;
+  e.parentElement.style.backgroundColor = increment_color;
   localsave();
 }
 
