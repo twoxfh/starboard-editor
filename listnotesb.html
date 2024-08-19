@@ -130,6 +130,11 @@ button.phl-handle::after {
 */
 textarea {
 width: 100%;
+} 
+
+menu {
+padding: 25px;
+width:5px;
 }
 </style>
 <script>
@@ -949,16 +954,16 @@ function menu(e) {
 	const getid = e.parentElement.parentElement.dataset.id;
 	const divcolor = e.parentElement.parentElement.dataset.color;
 
-	e.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" data-after="[data-id='${getid}']" onclick="add(this);" class="phl-after">+</button>`)
-	e.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" data-inside="[data-id='${getid}']" onclick="add(this);" class="phl-inside">></button>`)
-	e.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" data-before="[data-id='${getid}']" onclick="add(this);" class="phl-before">^</button>`)
+	e.parentElement.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" data-after="[data-id='${getid}']" onclick="add(this);" class="phl-after">+</button>  `)
+	e.parentElement.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" data-inside="[data-id='${getid}']" onclick="add(this);" class="phl-inside">></button>  `)
+	e.parentElement.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" data-before="[data-id='${getid}']" onclick="add(this);" class="phl-before">^</button>  `)
 	if (e.parentElement.parentElement.parentElement.parentElement.dataset.id){
 		const getid2 = e.parentElement.parentElement.parentElement.parentElement.dataset.id;
-		e.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" data-after="[data-id='${getid2}']" onclick="add(this);" class="phl-parentafter"><</button>`)
+		e.parentElement.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" data-after="[data-id='${getid2}']" onclick="add(this);" class="phl-parentafter"><</button>  `)
 	}
-	e.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" onclick="colorSwitch(this);" class="phl-color">C</button>`)
-	e.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" onclick="focusmode('${getid}');">&#128064;</button>`)
-	e.parentElement.insertAdjacentHTML('beforeend', `<input class="menu" onchange="divcolor(this)" value ="${divcolor}" type="color"/>`)
+	e.parentElement.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" onclick="colorSwitch(this);" class="phl-color">C</button>  `)
+	e.parentElement.parentElement.insertAdjacentHTML('beforeend', `<input class="menu" onchange="divcolor(this)" value ="${divcolor}" type="color"/>   `)
+	e.parentElement.parentElement.insertAdjacentHTML('beforeend', `<button class="menu" type="button" onclick="focusmode('${getid}');">&#128064;</button>   `)
 }
 
 function divcolor(e){
@@ -1049,6 +1054,7 @@ function saveit(e) {
     switch (e.className) {
     case 'phl-label':
 	  input(e.parentElement.parentElement);
+	  e.parentElement.parentElement.dataset.createDate = new Date().toLocaleString();
 	  localsave();
 	  break;
   
