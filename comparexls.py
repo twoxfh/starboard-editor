@@ -6,6 +6,14 @@ import logging
 import json
 import re
 
+'''
+This script compares specific columns across multiple CSV files located in a specified directory. It generates a comparison matrix and writes the results to an Excel file, with conditional formatting to highlight the presence ('Yes') or absence ('No') of data in each file. The script also logs a summary of the comparison process.
+
+Usage:
+    python comparexls.py --dir <directory> --columns <column_indices> --output <output_file> --sheet_name <sheet_name> --separator <separator> [--regex <regex_pattern>]
+'''
+
+
 logging.basicConfig(level=logging.INFO)
 
 class CSVComparer:
@@ -41,12 +49,14 @@ class CSVComparer:
                     for row in reader:
                         if row:
                             key_parts = [row[col].strip() for col in self.columns]
-                            if self.regex_pattern:
-                                key_parts = [part for part in key_parts if re.match(self.regex_pattern, part)]
                             key = self.separator.join(key_parts)
-                            if key not in row_data_dict:
-                                row_data_dict[key] = set([filename])
-                            else:
+                            if self.regex_pattern and re.match(self.regex_pattern, key):
+                                if key not in row_data_dict:
+                                    row_data_dict[key] = set()
+                                row_data_dict[key].add(filename)
+                            elif not self.regex_pattern:
+                                if key not in row_data_dict:
+                                    row_data_dict[key] = set()
                                 row_data_dict[key].add(filename)
         return row_data_dict
 
