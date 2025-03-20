@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regex Note Taker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        header {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: white;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        .note-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            background: white;
+        }
+
+        .note-dates {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 15% auto;
+            padding: 20px;
+            width: 80%;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        input, textarea, button {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .remove-filter-btn {
+            background: #dc3545;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        .remove-filter-btn:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="search-container">
+            <input type="text" id="keywordFilter" oninput="renderAll()" placeholder="Search notes...">
+            <button onclick="clearSearch()">Clear Search</button>
+        </div>
+        <button onclick="showAddNoteModal()">Add Note</button>
+        <button onclick="showAddRegexModal()">Add Filter</button>
+        <button onclick="exportNotes()">Export</button>
+        <button onclick="importNotes()">Import</button>
+    </header>
+
+    <div class="container">
+        <div class="sidebar"></div>
+        <div class="main-content">
+            <ul id="noteList"></ul>
+        </div>
+    </div>
+
+    <!-- Add Note Modal -->
+    <div id="noteModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalTitle">Add Note</h2>
+            <textarea id="noteContent" placeholder="Enter your note here"></textarea>
+            <input type="hidden" id="noteId">
+            <button onclick="saveNote()">Save</button>
+        </div>
+    </div>
+
+    <!-- Add Regex Modal -->
+    <div id="regexModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add Filter</h2>
+            <input type="text" id="regexInput" placeholder="Enter regex pattern (e.g., /#\w+/g)">
+            <button onclick="saveRegex()">Save</button>
+        </div>
+    </div>
+
+    <script>
+    let notes = [];
+    let regexes = [];
+    let selectedMatches = [];
+    const noteModal = document.getElementById('noteModal');
+    const regexModal = document.getElementById('regexModal');
+    
+    document.getElementById('keywordFilter').addEventListener('input', renderAll);
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        notes = JSON.parse(localStorage.getItem('notes')) || [];
+        regexes = JSON.parse(localStorage.getItem('regexes')) || [];
+        selectedMatches = [];
+        renderAll();
+    });
+
+    function renderAll() {
+        const filteredNotes = getFilteredNotes();
+        renderNoteList(filteredNotes);
+        renderRegexFilters(filteredNotes);
+    }
+
+    function getFilteredNotes() {
+        let filtered = [...notes];
+
+        const keywords = document.getElementById('keywordFilter').value.trim().toLowerCase().split(/\s+/).filter(k => k);
+        if (keywords.length) {
+            filtered = filtered.filter(note => 
+                keywords.every(k => note.content.toLowerCase().includes(k))
+            );
+        }
+
+        if (selectedMatches.length) {
+            filtered = filtered.filter(note => 
+                selectedMatches.every(match => 
+                    testRegexMatch(note, match.regexPattern, match.matchValue)
+                )
+            );
+        }
+
+        return filtered;
+    }
+
+    function testRegexMatch(note, regexStr, matchValue) {
+        try {
+            const regex = parseRegex(regexStr);
+            return (note.content.match(regex) || []).includes(matchValue);
+        } catch {
+            return false;
+        }
+    }
+
+    function parseRegex(regexStr) {
+        const matches = regexStr.match(/\/(.*)\/([a-z]*)/i);
+        if (!matches) throw new Error('Invalid regex');
+        return new RegExp(matches[1], matches[2]);
+    }
+
+    function renderNoteList(notesList) {
+        const noteList = document.getElementById('noteList');
+        noteList.innerHTML = '';
+        
+        notesList.forEach(note => {
+            const item = document.createElement('li');
+            item.className = 'note-item';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.textContent = note.content;
+            
+            const datesDiv = document.createElement('div');
+            datesDiv.className = 'note-dates';
+            datesDiv.textContent = `Created: ${note.created.toLocaleString()} | Updated: ${note.updated.toLocaleString()}`;
+            
+            const buttonsDiv = document.createElement('div');
+            buttonsDiv.className = 'note-buttons';
+            
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+            editBtn.onclick = () => showEditNoteModal(note);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.onclick = () => deleteNote(note.id);
+            
+            buttonsDiv.append(editBtn, deleteBtn);
+            
+            item.append(contentDiv, datesDiv, buttonsDiv);
+            noteList.appendChild(item);
+        });
+    }
+
+    function renderRegexFilters(filteredNotes) {
+        const sidebar = document.querySelector('.sidebar');
+        sidebar.innerHTML = '';
+        
+        regexes.forEach(regexStr => {
+            const section = document.createElement('div');
+            section.className = 'regex-section';
+            
+            const headerDiv = document.createElement('div');
+            headerDiv.style.display = 'flex';
+            headerDiv.style.alignItems = 'center';
+            
+            const headerText = document.createElement('h4');
+            headerText.textContent = `Filter: ${regexStr}`;
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-filter-btn';
+            removeBtn.textContent = 'X';
+            removeBtn.onclick = () => removeRegex(regexStr);
+            
+            headerDiv.append(headerText, removeBtn);
+            
+            const ul = document.createElement('ul');
+            
+            const regex = parseRegex(regexStr);
+            const allMatches = [];
+            
+            filteredNotes.forEach(note => {
+                const matches = note.content.match(regex) || [];
+                allMatches.push(...matches);
+            });
+            
+            const uniqueMatches = Array.from(new Set(allMatches));
+            const counts = uniqueMatches.reduce((acc, m) => {
+                acc[m] = (allMatches.filter(x => x === m).length);
+                return acc;
+            }, {});
+            
+            uniqueMatches.forEach(match => {
+                const li = document.createElement('li');
+                li.className = 'checkbox-container';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.dataset.regex = regexStr;
+                checkbox.dataset.match = match;
+                checkbox.checked = isMatchSelected(regexStr, match);
+                
+                const label = document.createElement('label');
+                label.textContent = `${match} (${counts[match]})`;
+                
+                checkbox.addEventListener('click', toggleMatchSelection);
+                
+                li.append(checkbox, label);
+                ul.appendChild(li);
+            });
+            
+            section.append(headerDiv, ul);
+            sidebar.appendChild(section);
+        });
+    }
+
+    function isMatchSelected(regexStr, matchValue) {
+        return selectedMatches.some(m => 
+            m.regexPattern === regexStr && m.matchValue === matchValue
+        );
+    }
+
+    function toggleMatchSelection(e) {
+        const checkbox = e.target;
+        const regexStr = checkbox.dataset.regex;
+        const matchValue = checkbox.dataset.match;
+        
+        if (checkbox.checked) {
+            selectedMatches.push({ regexPattern: regexStr, matchValue });
+        } else {
+            selectedMatches = selectedMatches.filter(m => 
+                !(m.regexPattern === regexStr && m.matchValue === matchValue)
+            );
+        }
+        
+        renderAll();
+    }
+
+    function removeRegex(regexStr) {
+        regexes = regexes.filter(r => r !== regexStr);
+        selectedMatches = selectedMatches.filter(m => m.regexPattern !== regexStr);
+        saveRegexes();
+        renderAll();
+    }
+
+    function saveNote() {
+        const content = document.getElementById('noteContent').value.trim();
+        const noteId = document.getElementById('noteId').value;
+        const now = new Date();
+
+        if (!content) return;
+
+        const newNote = {
+            id: noteId || Date.now().toString(),
+            content,
+            created: noteId ? notes.find(n => n.id === noteId).created : now,
+            updated: now
+        };
+
+        if (noteId) {
+            notes = notes.map(n => n.id === noteId ? newNote : n);
+        } else {
+            notes.push(newNote);
+        }
+
+        saveNotes();
+        closeModals();
+        renderAll();
+    }
+
+    function deleteNote(id) {
+        if (confirm('Are you sure?')) {
+            notes = notes.filter(n => n.id !== id);
+            saveNotes();
+            renderAll();
+        }
+    }
+
+    function saveNotes() {
+        localStorage.setItem('notes', JSON.stringify(notes));
+    }
+
+    function showAddNoteModal() {
+        noteModal.style.display = 'block';
+        document.getElementById('modalTitle').textContent = 'Add Note';
+        document.getElementById('noteContent').value = '';
+        document.getElementById('noteId').value = '';
+    }
+
+    function showEditNoteModal(note) {
+        noteModal.style.display = 'block';
+        document.getElementById('modalTitle').textContent = 'Edit Note';
+        document.getElementById('noteContent').value = note.content;
+        document.getElementById('noteId').value = note.id;
+    }
+
+    function showAddRegexModal() {
+        regexModal.style.display = 'block';
+        document.getElementById('regexInput').value = '';
+    }
+
+    function saveRegex() {
+        const regexStr = document.getElementById('regexInput').value.trim();
+        
+        if (!regexStr) return;
+
+        try {
+            parseRegex(regexStr);
+            regexes.push(regexStr);
+            saveRegexes();
+            closeModals();
+            renderAll();
+        } catch (e) {
+            alert('Invalid regex format. Example: /pattern/flags');
+        }
+    }
+
+    function saveRegexes() {
+        localStorage.setItem('regexes', JSON.stringify(regexes));
+    }
+
+    function closeModals() {
+        noteModal.style.display = 'none';
+        regexModal.style.display = 'none';
+    }
+
+    document.querySelectorAll('.modal .close').forEach(btn => {
+        btn.onclick = closeModals;
+    });
+
+    window.onclick = (e) => {
+        const modals = [noteModal, regexModal];
+        modals.forEach(modal => {
+            if (e.target === modal) modal.style.display = 'none';
+        });
+    };
+
+    function exportNotes() {
+        const data = {
+            notes: notes,
+            regexes: regexes
+        };
+        const json = JSON.stringify(data);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'notes_backup.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function importNotes() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    notes = data.notes || [];
+                    regexes = data.regexes || [];
+                    saveNotes();
+                    saveRegexes();
+                    renderAll();
+                } catch {
+                    alert('Invalid file format');
+                }
+            };
+            reader.readAsText(file);
+        };
+        
+        input.click();
+    }
+
+    function clearSearch() {
+        document.getElementById('keywordFilter').value = '';
+        renderAll();
+    }
+    </script>
+</body>
+</html>
+
