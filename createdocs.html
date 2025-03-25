@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinning Library</title>
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #left-container, #right-container {
+            box-sizing: border-box;
+            padding: 20px;
+        }
+
+        #left-container {
+            width: 35%;
+            overflow-y: auto;
+        }
+
+        #right-container {
+            width: 65%; /* Adjusted to fit beside the left container */
+        }
+
+        #image-container {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .image-wrapper {
+            position: relative;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            margin-bottom: 10px;
+            max-width: 100%; /* Adjust as needed */
+            overflow: hidden;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: red;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .drag-handle {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background-color: blue;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: grab;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        img {
+            max-width: 100%;
+            max-height: 500px; /* Adjust as needed */
+            display: block;
+            margin: 0 auto;
+            cursor: pointer;
+        }
+
+        .image-container {
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+            width: 100%;
+            height: 70vh; /* Adjusted to fit within the viewport */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            cursor: crosshair;
+        }
+
+        .pin {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: red;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 12px;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .pin-table {
+            margin-top: 20px;
+        }
+
+        .pin-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .pin-table th, .pin-table td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .pin-table input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .pin-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .print-view {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+.print-view .image-container {
+    display: inline-block;
+    vertical-align: top;
+    margin-right: 40px; /* Adjust spacing */
+}
+
+.print-view .image-container .print-image {
+    width: 200px; /* Adjust image width */
+    height: 150px; /* Adjust image height */
+    object-fit: cover; /* Image scaling */
+    border: 1px solid #ddd;
+}
+
+.print-view .pin-details {
+    display: inline-block;
+    vertical-align: top;
+    font-size: 14px;
+}
+
+.print-view .pin-details span {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+    </style>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+</head>
+<body>
+    <div id="left-container">
+        <ul id="image-list" class="drop-container"></ul>
+    </div>
+
+    <div id="right-container">
+        <div class="image-container" id="image-container">
+            <!-- Image background will be set here -->
+        </div>
+        <button id="printViewBtn">Print View</button>
+        <button id="add-pin">Add Pin</button>
+        <button id="save-pins">Save Pins</button>
+        <button id="export-pins">Export Pins</button>
+        <label id="import-pins-label" for="json-file-input">Import Pins</label>
+        <input type="file" id="json-file-input" accept=".json">
+        <div class="pin-table" id="pin-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Pin #</th>
+                        <th>X</th>
+                        <th>Y</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="pin-table-body">
+                    <!-- Pin data will be listed here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+
+
+class PinningLibrary {
+    constructor() {
+        this.imageContainer = document.getElementById('image-container');
+        this.pinTableBody = document.getElementById('pin-table-body');
+        this.pinCount = 0;
+        this.pins = [];
+        this.selectedImage = null;
+    }
+
+    loadImageFromData(e) {
+        console.log(e);
+        this.selectedImage = e.srcElement;
+        this.imageContainer.style.backgroundImage = `url(${this.selectedImage.src})`;
+        this.pins = JSON.parse(this.selectedImage.dataset.pins || '[]') || [];
+        this.renderPins();
+        this.renderPinTable();
+    }
+
+    addImage(url, pins) {
+    const imageContainer = document.getElementById("image-list");
+    const imageWrapper = document.createElement("li"); // Use <li> for unordered list
+    imageWrapper.className = "image-wrapper";
+    imageWrapper.draggable = true;
+    imageWrapper.dataset.index = imageContainer.childElementCount; // Track original index
+
+    const dragHandle = document.createElement("button");
+    dragHandle.className = "drag-handle";
+    dragHandle.textContent = "≡";
+
+    const img = document.createElement("img");
+    img.dataset.pins = JSON.stringify(pins);
+    img.src = url;
+    img.id = imageContainer.childElementCount + 1;
+    img.addEventListener("click", (e) => {
+        this.loadImageFromData(e);
+    });
+
+    const closeButton = document.createElement("button");
+    closeButton.className = "close-btn";
+    closeButton.textContent = "X";
+    closeButton.addEventListener("click", () => {
+        imageContainer.removeChild(imageWrapper);
+        // Update SortableJS after removal (if necessary, though SortableJS should handle it)
+        this.reinitSortable(); // New method to reinitialize after changes
+    });
+
+    imageWrapper.appendChild(dragHandle);
+    imageWrapper.appendChild(img);
+    imageWrapper.appendChild(closeButton);
+    imageContainer.appendChild(imageWrapper);
+
+    // Initialize or Reinitialize SortableJS after adding a new element
+    this.reinitSortable();
+}
+
+// New Method to (Re)Initialize SortableJS
+reinitSortable() {
+    const imageContainer = document.getElementById("image-list");
+    // Destroy previous instance if exists, then reinit
+    if (window.sortableInstance) {
+        window.sortableInstance.destroy();
+    }
+    window.sortableInstance = new Sortable(imageContainer, {
+        handle: '.drag-handle',
+        animation: 150,
+        ghostClass: 'blue-background-class',
+        onEnd: (evt) => { // Update dataset.index on reorder
+            Array.from(imageContainer.children).forEach((child, index) => {
+                child.dataset.index = index;
+            });
+            this.updateImagesOrder(); // New method to update internal image order
+        }
+    });
+}
+
+// New Method to Update Internal Image Order Reflection
+updateImagesOrder() {
+    const imageContainer = document.getElementById("image-list");
+    const newOrder = Array.from(imageContainer.children).map(child => {
+        const img = child.querySelector('img');
+        return { url: img.src, pins: JSON.parse(img.dataset.pins) };
+    });
+    // TO DO: Implement logic to save/update the new order (e.g., in a data structure or backend)
+    console.log("New Image Order:", newOrder);
+    // Example: Update a hypothetical imagesArray
+    this.imagesArray = newOrder; // Assuming you have this array to track images
+}
+
+    savePinData() {
+        if (this.selectedImage) {
+            this.selectedImage.dataset.pins = JSON.stringify(this.pins);
+        }
+    }
+
+    addPin() {
+        const rect = this.imageContainer.getBoundingClientRect();
+        const x = rect.width / 2;
+        const y = rect.height / 2;
+        this.pinCount++;
+        const pin = {
+            id: this.pinCount,
+            x, y,
+            description: ''
+        };
+        this.pins.push(pin);
+        this.renderPin(pin);
+        this.renderPinTable();
+        this.savePinData();
+    }
+
+    renderPins() {
+        this.imageContainer.querySelectorAll('.pin').forEach(pin => pin.remove());
+        this.pins.forEach(pin => this.renderPin(pin));
+    }
+
+    renderPin(pin) {
+    const pinElement = document.createElement('div');
+    pinElement.classList.add('pin');
+    pinElement.style.left = `${pin.x}px`;
+    pinElement.style.top = `${pin.y}px`;
+    pinElement.dataset.pinId = pin.id;
+    pinElement.textContent = pin.id; 
+
+    this.imageContainer.appendChild(pinElement);
+
+    // Make pin draggable
+    pinElement.addEventListener('mousedown', (event) => {
+        const startX = event.clientX - pinElement.offsetLeft;
+        const startY = event.clientY - pinElement.offsetTop;
+        const originalPin = this.pins.find(p => p.id === pin.id); // Reference the original pin object
+
+        document.addEventListener('mousemove', movePin);
+        document.addEventListener('mouseup', stopDragging);
+
+        function movePin(event) {
+            const newX = event.clientX - startX;
+            const newY = event.clientY - startY;
+            pinElement.style.left = `${newX}px`;
+            pinElement.style.top = `${newY}px`;
+
+            // Explicitly update the original pin object in the array
+            originalPin.x = newX;
+            originalPin.y = newY;
+            pinningLib.savePinData(); // Save after each move for immediate persistence
+        }
+
+        function stopDragging() {
+            document.removeEventListener('mousemove', movePin);
+            document.removeEventListener('mouseup', stopDragging);
+            // Optional: Save on drop to reduce save operations, but might not be as responsive
+            // pinningLib.savePinData();
+        }
+    });
+}
+removePin(pinId) {
+    const pinToRemove = this.pins.find(pin => pin.id === pinId);
+    if (pinToRemove) {
+        this.pins = this.pins.filter(pin => pin !== pinToRemove);
+        this.imageContainer.querySelector(`[data-pin-id="${pinToRemove.id}"]`).remove();
+        this.renumberPins(this.pins);
+        this.renderPinTable();
+        this.savePinData();
+    }
+}
+
+    updatePin(pinId, x, y, description) {
+        const pin = this.pins.find(pin => pin.id === pinId);
+        if (pin) {
+            pin.x = x;
+            pin.y = y;
+            pin.description = description;
+            this.renderPins();
+            this.renderPinTable();
+            this.savePinData();
+        }
+    }
+
+    updatePinOnImage(pinId, newId) {
+    const pinElement = this.imageContainer.querySelector(`[data-pin-id="${pinId}"]`);
+    if (pinElement) {
+        pinElement.textContent = newId;
+        pinElement.dataset.pinId = newId;
+    }
+}
+    renderPinTable() {
+    this.pinTableBody.innerHTML = '';
+    this.pins.forEach((pin) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${pin.id}</td>
+            <td>${pin.x}</td>
+            <td>${pin.y}</td>
+            <td><input type="text" value="${pin.description}" data-pin-id="${pin.id}"></td>
+            <td><button class="remove-pin" data-pin-id="${pin.id}">Remove</button></td>
+            <td><span class="drag-handle-pin">≡</span></td>
+        `;
+
+        const descriptionInput = row.querySelector('input');
+        descriptionInput.addEventListener('input', (event) => {
+            pin.description = event.target.value;
+            this.savePinData();
+        });
+
+        const removeButton = row.querySelector('.remove-pin');
+        removeButton.addEventListener('click', () => this.removePin(pin.id));
+
+        this.pinTableBody.appendChild(row);
+    });
+    this.initPinTableSortable();
+}
+
+initPinTableSortable() {
+    if (window.pinTableSortableInstance) {
+        window.pinTableSortableInstance.destroy();
+    }
+    window.pinTableSortableInstance = new Sortable(this.pinTableBody, {
+        handle: '.drag-handle-pin',
+        animation: 150,
+        onEnd: (evt) => {
+            const newOrder = Array.from(this.pinTableBody.children).map((row, index) => {
+                const originalPinId = parseInt(row.querySelector('td:first-child').textContent);
+                const pin = this.pins.find(pin => pin.id === originalPinId);
+                return { ...pin, temporaryIndex: index };
+            });
+
+            this.renumberPins(newOrder);
+            this.savePinData();
+            this.renderPinTable();
+        }
+    });
+}
+
+generateDownloadableHTML() {
+    const imageContainer = document.getElementById("image-list");
+        const imagesData = [];
+
+        Array.from(imageContainer.children).forEach(imageWrapper => {
+            const img = imageWrapper.querySelector('img');
+            const pins = JSON.parse(img.dataset.pins || '[]') || [];
+            imagesData.push({
+                url: img.src,
+                pins: pins
+            });
+        });
+    
+  // 3 . Write HTML Content
+ const doc = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Image Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; }
+        .image-container { display: inline-block; vertical-align: top; margin: 10px; }
+        .image-container img { width: 200px; height: auto; }
+        .pins { font-size: smaller; color: #666; }
+      </style>
+    </head>
+    <body>
+      <h1>Image Report</h1>
+      ${imagesData.map((image, index) => `
+        <p>
+          <img src="${image.url}" alt="Image ${index+1}}"></p>
+          <p>
+            ${image.pins.map(pin => `
+              <p>${pin.id} - ${pin.description}</p>
+            `).join('')}
+          </p>
+        </p>
+      `).join('')}
+    </body>
+    </html>`;
+
+  const blob = new Blob([doc], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'PinnedImages.html';
+    a.click();
+    URL.revokeObjectURL(url); // Clean up
+}
+
+renumberPins(pinsWithTemporaryIndex) {
+    const updatedPins = pinsWithTemporaryIndex.map((pin, newIndex) => ({
+        ...pin,
+        id: newIndex + 1,
+    }));
+    this.pins = updatedPins;
+
+    pinsWithTemporaryIndex.forEach((originalPin, index) => {
+        const newPin = this.pins[index];
+        const existingElement = this.imageContainer.querySelector(`[data-pin-id="${originalPin.id}"]`);
+        if (existingElement) {
+            this.updatePinOnImage(originalPin.id, newPin.id);
+        } else {
+            this.renderPin(newPin);
+        }
+    });
+
+    Array.from(this.imageContainer.children).forEach(child => {
+        if (!this.pins.find(pin => pin.id === parseInt(child.dataset.pinId))) {
+            child.remove();
+        }
+    });
+}
+
+    clearPinData() {
+        this.pins = [];
+        this.renderPins();
+        this.renderPinTable();
+        this.savePinData();
+    }
+
+    exportAllImagesWithPins() {
+        const imageContainer = document.getElementById("image-list");
+        const imagesData = [];
+
+        Array.from(imageContainer.children).forEach(imageWrapper => {
+            const img = imageWrapper.querySelector('img');
+            const pins = JSON.parse(img.dataset.pins || '[]') || [];
+            imagesData.push({
+                url: img.src,
+                pins: pins
+            });
+        });
+
+        const jsonData = JSON.stringify(imagesData, null, 2);
+        const blob = new Blob([jsonData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'images_with_pins.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    importAllImagesWithPins(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const jsonData = JSON.parse(e.target.result);
+                const imageContainer = document.getElementById("image-list");
+                imageContainer.innerHTML = ''; // Clear existing images
+
+                jsonData.forEach(imageData => {
+                    this.addImage(imageData.url, imageData.pins);
+                });
+            } catch (error) {
+                alert('Failed to import JSON file: ' + error.message);
+            }
+        };
+        reader.readAsText(file);
+    }
+}
+
+let pinningLib; // Declare once
+document.addEventListener('DOMContentLoaded', () => {
+    pinningLib = new PinningLibrary();
+
+            // Simulate adding an image from clipboard
+            const imageContainer = document.getElementById('image-container');
+
+
+            // Add event listener for the add pin button
+            document.getElementById('add-pin').addEventListener('click', () => {
+                pinningLib.addPin();
+            });
+            document.getElementById('save-pins').addEventListener('click', () => {
+                pinningLib.savePinData();
+
+            });
+
+            document.getElementById('printViewBtn').addEventListener('click', () => {
+        pinningLib.generateDownloadableHTML(); // Ensure 'yourPinningLibraryInstance' is correctly referenced
+    });
+            // Add event listener for the export pins button
+            document.getElementById('export-pins').addEventListener('click', () => {
+                pinningLib.exportAllImagesWithPins();
+            });
+
+            document.getElementById('json-file-input').addEventListener('change', (event) => {
+        pinningLib.importAllImagesWithPins(event);
+    });
+
+            const blobToBase64 = blob => {
+                const reader = new FileReader();
+                reader.readAsDataURL(blob);
+                return new Promise(resolve => {
+                    reader.onloadend = () => {
+                    resolve(reader.result);
+                    };
+                });
+            };
+
+            // Add event listener for clipboard paste
+            document.addEventListener('paste', (event) => {
+                const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.includes("image/")) {
+                        const blob = items[i].getAsFile();
+                        const url = URL.createObjectURL(blob);
+                        blobToBase64(blob).then(res => {
+                            pinningLib.addImage(res, []);    
+                        });
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
