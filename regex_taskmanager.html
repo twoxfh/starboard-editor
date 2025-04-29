@@ -1,10 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Regex Note Taker</title>
     <style>
+
+.textarea-lined {
+    background-image: linear-gradient(
+        to bottom,
+        #ddd 0.1em,
+        transparent 0.1em
+    );
+    background-size: 100% 1.5em; /* Matches the line-height */
+    background-repeat: repeat-y;
+    background-position: top left;
+    background-clip: content-box; /* Ensures lines start at the text content */
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 16px;
+    line-height: 1.5em; /* Must match background-size */
+    padding: 0; /* Remove padding to avoid offset */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    color: #333;
+    resize: vertical;
+    box-sizing: border-box;
+    margin-top: 0.5em; /* Optional: spacing between textarea and top */
+}
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -104,7 +126,18 @@
         .remove-filter-btn:hover {
             background: #c82333;
         }
+
+        #notePreview {
+            border: 1px solid #ccc;
+            padding: 10px;
+            background: #fff;
+            overflow-y: auto;
+            font-family: inherit;
+            line-height: 1.5;
+        }
     </style>
+    <!-- Load Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <header>
@@ -130,7 +163,10 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2 id="modalTitle">Add Note</h2>
-            <textarea id="noteContent" placeholder="Enter your note here"></textarea>
+            <div style="display: flex; gap: 20px; height: 300px;">
+                <textarea id="noteContent" placeholder="Write your note in Markdown..." style="width: 48%;"  class="textarea-lined"></textarea>
+                <div id="notePreview" style="width: 48%;"></div>
+            </div>
             <input type="hidden" id="noteId">
             <button onclick="saveNote()">Save</button>
         </div>
@@ -152,15 +188,19 @@
     let selectedMatches = [];
     const noteModal = document.getElementById('noteModal');
     const regexModal = document.getElementById('regexModal');
-    
-    document.getElementById('keywordFilter').addEventListener('input', renderAll);
-    
+
     document.addEventListener('DOMContentLoaded', () => {
         notes = JSON.parse(localStorage.getItem('notes')) || [];
         regexes = JSON.parse(localStorage.getItem('regexes')) || [];
         selectedMatches = [];
         renderAll();
     });
+
+    function appendMatchedText(regex, text) {
+        const pattern = regex.toString().slice(1, -1);
+        const match = text.match(regex);
+        return match ? match[0] : pattern.replace('\\w+', text);
+    }
 
     function renderAll() {
         const filteredNotes = getFilteredNotes();
@@ -368,8 +408,27 @@
     function showAddNoteModal() {
         noteModal.style.display = 'block';
         document.getElementById('modalTitle').textContent = 'Add Note';
-        document.getElementById('noteContent').value = '';
         document.getElementById('noteId').value = '';
+        document.getElementById('noteContent').value = '';
+        document.getElementById('notePreview').innerHTML = '';
+
+        if (selectedMatches.length > 0) {
+            let generatedContent = '';
+            selectedMatches.forEach(({ regexPattern, matchValue }) => {
+                try {
+                    const regex = parseRegex(regexPattern);
+                    const replacement = appendMatchedText(regex, matchValue);
+                    generatedContent += `${replacement} `;
+                } catch (e) {
+                    console.error('Invalid regex:', regexPattern);
+                }
+            });
+            document.getElementById('noteContent').value = generatedContent.trim();
+        }
+
+        document.getElementById('noteContent').addEventListener('input', updatePreview);
+        document.getElementById('noteContent').addEventListener('keydown', handleListKeys);
+        updatePreview();
     }
 
     function showEditNoteModal(note) {
@@ -377,6 +436,11 @@
         document.getElementById('modalTitle').textContent = 'Edit Note';
         document.getElementById('noteContent').value = note.content;
         document.getElementById('noteId').value = note.id;
+        document.getElementById('notePreview').innerHTML = '';
+
+        document.getElementById('noteContent').addEventListener('input', updatePreview);
+        document.getElementById('noteContent').addEventListener('keydown', handleListKeys);
+        updatePreview();
     }
 
     function showAddRegexModal() {
@@ -466,7 +530,74 @@
         document.getElementById('keywordFilter').value = '';
         renderAll();
     }
+
+    function updatePreview() {
+        const content = document.getElementById('noteContent').value;
+        const preview = document.getElementById('notePreview');
+        preview.innerHTML = marked.parse(content);
+    }
+
+    function handleListKeys(e) {
+    const textarea = e.target;
+    const startPos = textarea.selectionStart;
+    const endPos = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(startPos, endPos);
+    const lines = textarea.value.split('\n');
+    const isEnter = e.key === 'Enter';
+    const isTab = e.key === 'Tab';
+    const isShiftTab = e.shiftKey && e.key === 'Tab';
+
+    if (isEnter) {
+        e.preventDefault();
+        const before = textarea.value.substring(0, startPos);
+        const after = textarea.value.substring(endPos);
+        let newLine = '\n';
+
+        // Check indentation of current line
+        const currentLineStart = before.lastIndexOf('\n', startPos) + 1;
+        const currentLineEnd = before.indexOf('\n', currentLineStart);
+        const currentLine = before.substring(currentLineStart, currentLineEnd !== -1 ? currentLineEnd : before.length);
+
+        const indent = currentLine.match(/^\s*/)[0]; // Get leading spaces
+
+        // Preserve indentation for the new line
+        newLine += indent;
+
+        // Insert the new line
+        textarea.value = before + newLine + after;
+
+        // Move cursor to end of new line
+        textarea.selectionStart = textarea.selectionEnd = startPos + newLine.length;
+        return;
+    }
+
+    if (isTab || isShiftTab) {
+        e.preventDefault();
+        const value = textarea.value;
+
+        // Get the selected lines
+        const startLine = value.slice(0, startPos).split('\n').length - 1;
+        const endLine = value.slice(0, endPos).split('\n').length - 1;
+        let newValue = value.split('\n');
+
+        for (let i = startLine; i <= endLine; i++) {
+            const line = newValue[i];
+
+                // Indent the line
+                newValue[i] = '  ' + line; // Two spaces for markdown
+        
+        }
+
+        const newValueStr = newValue.join('\n');
+        const newStart = startPos + (isTab ? 2 : -2);
+        const newEnd = endPos + (isTab ? 2 : -2);
+
+        // Ensure cursor is within bounds
+        textarea.value = newValueStr;
+        textarea.selectionStart = Math.max(0, newStart);
+        textarea.selectionEnd = Math.max(0, newEnd);
+    }
+}
     </script>
 </body>
 </html>
-
