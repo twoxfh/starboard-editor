@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 20px;
+        }
+        .template-card {
+            margin-bottom: 20px;
+            border-left: 4px solid #0d6efd;
+        }
+        .variable-item {
+            background-color: #e9ecef;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .template-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+        .variable-placeholder {
+            background-color: #f8f9fa;
+            border: 1px dashed #ced4da;
+            border-radius: 4px;
+            padding: 2px 5px;
+            font-family: monospace;
+            color: #0d6efd;
+        }
+        #templatePreview {
+            background-color: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            min-height: 200px;
+        }
+        .nav-tabs .nav-link {
+            color: #495057;
+        }
+        .nav-tabs .nav-link.active {
+            color: #0d6efd;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Template Generator</h1>
+        
+        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="create-tab" data-bs-toggle="tab" data-bs-target="#create" type="button" role="tab" aria-controls="create" aria-selected="true">
+                    <i class="bi bi-plus-circle"></i> Create Template
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="load-tab" data-bs-toggle="tab" data-bs-target="#load" type="button" role="tab" aria-controls="load" aria-selected="false">
+                    <i class="bi bi-folder2-open"></i> Load Template
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="templates-tab" data-bs-toggle="tab" data-bs-target="#templates" type="button" role="tab" aria-controls="templates" aria-selected="false">
+                    <i class="bi bi-collection"></i> My Templates
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="myTabContent">
+            <!-- Create Template Tab -->
+            <div class="tab-pane fade show active" id="create" role="tabpanel" aria-labelledby="create-tab">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Template Editor</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="templateName" class="form-label">Template Name</label>
+                                    <input type="text" class="form-control" id="templateName" placeholder="Enter template name">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="templateText" class="form-label">Template Content</label>
+                                    <div class="form-text mb-2">Use {{variable_name}} as placeholders for variables</div>
+                                    <textarea class="form-control" id="templateText" rows="10" placeholder="Enter your template here with variables in {{variable_name}} format"></textarea>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary" id="saveTemplate">
+                                        <i class="bi bi-save"></i> Save Template
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0">Preview</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Variable List</label>
+                                    <div id="variablesList" class="mb-3">
+                                        <div class="text-muted text-center py-3">No variables found</div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Template Preview</label>
+                                    <div id="templatePreview" class="mb-3">
+                                        <div class="text-muted text-center py-3">Enter template text to see preview</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Load Template Tab -->
+            <div class="tab-pane fade" id="load" role="tabpanel" aria-labelledby="load-tab">
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Available Templates</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="template-list" id="templateList">
+                                    <div class="text-center py-4 text-muted">
+                                        <i class="bi bi-folder2-open" style="font-size: 2rem;"></i>
+                                        <p class="mt-2">No templates available</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mt-3">
+                            <div class="card-header bg-secondary text-white">
+                                <h5 class="mb-0">Import Template</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="importJson" class="form-label">Import from JSON</label>
+                                    <textarea class="form-control" id="importJson" rows="5" placeholder="Paste your template JSON here"></textarea>
+                                </div>
+                                <div class="d-grid">
+                                    <button class="btn btn-secondary" id="importTemplate">
+                                        <i class="bi bi-upload"></i> Import Template
+                                    </button>
+                                </div>
+								
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-7">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0" id="loadedTemplateName">Template Variables</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="templateVariablesContainer">
+                                    <div class="text-center py-4 text-muted">
+                                        <i class="bi bi-arrow-left-circle" style="font-size: 2rem;"></i>
+                                        <p class="mt-2">Please select a template from the list</p>
+                                    </div>
+                                </div>
+                                
+                                <div id="templateOutputContainer" class="mt-4" style="display: none;">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="mb-0">Generated Output</h5>
+                                        <button class="btn btn-outline-primary btn-sm" id="copyOutput">
+                                            <i class="bi bi-clipboard"></i> Copy
+                                        </button>
+                                    </div>
+									
+                                    <div id="templateOutput" class="p-3 border rounded bg-light"></div>
+                                </div>
+                                
+                                <div class="d-grid mt-4">
+                                    <button class="btn btn-success" id="generateOutput" disabled>
+                                        <i class="bi bi-magic"></i> Generate Output
+                                    </button>
+                                </div>
+								<div class="d-grid mt-4">
+    <button class="btn btn-primary" id="editTemplateBtn">
+        <i class="bi bi-pencil-square"></i> Edit Template
+    </button>
+</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- My Templates Tab -->
+            <div class="tab-pane fade" id="templates" role="tabpanel" aria-labelledby="templates-tab">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">My Templates</h5>
+                                <button class="btn btn-sm btn-light" id="exportAllTemplates">
+                                    <i class="bi bi-download"></i> Export All
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="userTemplatesList">
+                                    <div class="text-center py-4 text-muted">
+                                        <i class="bi bi-collection" style="font-size: 2rem;"></i>
+                                        <p class="mt-2">No templates saved yet</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0">Template Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted">Select a template to perform actions</p>
+                                <div id="templateActionButtons" style="display: none;">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-primary" id="loadSelectedTemplate">
+                                            <i class="bi bi-arrow-right-circle"></i> Load Template
+                                        </button>
+                                        <button class="btn btn-outline-warning" id="renameTemplate">
+                                            <i class="bi bi-pencil"></i> Rename
+                                        </button>
+                                        <button class="btn btn-outline-danger" id="deleteTemplate">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </button>
+                                        <button class="btn btn-outline-secondary" id="exportTemplate">
+                                            <i class="bi bi-download"></i> Export
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mt-3">
+                            <div class="card-header bg-secondary text-white">
+                                <h5 class="mb-0">Template Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="templateDetails">
+                                    <div class="text-center py-4 text-muted">
+                                        <i class="bi bi-info-circle" style="font-size: 2rem;"></i>
+                                        <p class="mt-2">Select a template to view details</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Rename Template Modal -->
+    <div class="modal fade" id="renameModal" tabindex="-1" aria-labelledby="renameModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="renameModalLabel">Rename Template</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="newTemplateName" class="form-label">New Template Name</label>
+                        <input type="text" class="form-control" id="newTemplateName">
+                    </div>
+					<div class="mb-3">
+    <label for="templateName" class="form-label">Template Name</label>
+    <input type="text" class="form-control" id="templateName" placeholder="Enter template name">
+    <input type="hidden" id="templateId">
+</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveRename">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Global variables
+            let templates = JSON.parse(localStorage.getItem('templates') || '[]');
+            let currentTemplate = null;
+            let selectedTemplateId = null;
+            
+            // DOM Elements
+            const templateNameInput = document.getElementById('templateName');
+            const templateTextInput = document.getElementById('templateText');
+            const variablesList = document.getElementById('variablesList');
+            const templatePreview = document.getElementById('templatePreview');
+            const saveTemplateBtn = document.getElementById('saveTemplate');
+            const templateList = document.getElementById('templateList');
+            const loadedTemplateName = document.getElementById('loadedTemplateName');
+            const templateVariablesContainer = document.getElementById('templateVariablesContainer');
+            const generateOutputBtn = document.getElementById('generateOutput');
+            const templateOutputContainer = document.getElementById('templateOutputContainer');
+            const templateOutput = document.getElementById('templateOutput');
+            const copyOutputBtn = document.getElementById('copyOutput');
+            const importJsonTextarea = document.getElementById('importJson');
+            const importTemplateBtn = document.getElementById('importTemplate');
+            const userTemplatesList = document.getElementById('userTemplatesList');
+            const exportAllTemplatesBtn = document.getElementById('exportAllTemplates');
+            const templateActionButtons = document.getElementById('templateActionButtons');
+            const templateDetails = document.getElementById('templateDetails');
+            const loadSelectedTemplateBtn = document.getElementById('loadSelectedTemplate');
+            const renameTemplateBtn = document.getElementById('renameTemplate');
+            const deleteTemplateBtn = document.getElementById('deleteTemplate');
+            const exportTemplateBtn = document.getElementById('exportTemplate');
+            const newTemplateNameInput = document.getElementById('newTemplateName');
+            const saveRenameBtn = document.getElementById('saveRename');
+            
+            // Helper Functions
+            function extractVariables(text) {
+                const regex = /\{\{([^}]+)\}\}/g;
+                const variables = [];
+                let match;
+                while ((match = regex.exec(text)) !== null) {
+                    variables.push(match[1].trim());
+                }
+                return [...new Set(variables)];
+            }
+            
+            function updateVariablesList() {
+                const variables = extractVariables(templateTextInput.value);
+                
+                if (variables.length === 0) {
+                    variablesList.innerHTML = '<div class="text-muted text-center py-3">No variables found</div>';
+                    return;
+                }
+                
+                variablesList.innerHTML = '';
+                variables.forEach(variable => {
+                    const varItem = document.createElement('div');
+                    varItem.className = 'variable-item';
+                    varItem.innerHTML = `
+                        <span><i class="bi bi-hash"></i> ${variable}</span>
+                        <span class="badge bg-info">Variable</span>
+                    `;
+                    variablesList.appendChild(varItem);
+                });
+            }
+            
+            function updateTemplatePreview() {
+    const text = templateTextInput.value;
+    if (!text.trim()) {
+        templatePreview.innerHTML = '<div class="text-muted text-center py-3">Enter template text to see preview</div>';
+        return;
+    }
+    
+    const variables = extractVariables(text);
+    let preview = text;
+    
+    if (variables.length === 0) {
+        preview = text.replace(/\{\{([^}]+)\}\}/g, '<span class="variable-placeholder">{{$1}}</span>');
+    } else {
+        variables.forEach(variable => {
+            preview = preview.replace(new RegExp(`\\{\\{${variable}\\}\\}`, 'g'), 
+                `<span class="variable-placeholder">{{${variable}}}</span>`);
+        });
+    }
+    
+    // Preserve line breaks by replacing newlines with <br> tags
+    preview = preview.replace(/\n/g, '<br>');
+    
+    templatePreview.innerHTML = preview;
+}
+
+
+            function showToast(message, type = 'success') {
+                const toastContainer = document.querySelector('.toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast align-items-center text-white bg-${type} border-0`;
+                toast.setAttribute('role', 'alert');
+                toast.setAttribute('aria-live', 'assertive');
+                toast.setAttribute('aria-atomic', 'true');
+                
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                `;
+                
+                toastContainer.appendChild(toast);
+                const bsToast = new bootstrap.Toast(toast, { autohide: true, delay: 3000 });
+                bsToast.show();
+                
+                toast.addEventListener('hidden.bs.toast', function() {
+                    toast.remove();
+                });
+            }
+            
+            function editTemplate(templateId) {
+    const template = templates.find(t => t.id === templateId);
+    
+    if (template) {
+        // Switch to create tab
+        const createTab = new bootstrap.Tab(document.getElementById('create-tab'));
+        createTab.show();
+        
+        // Populate form
+        document.getElementById('templateId').value = template.id;
+        document.getElementById('templateName').value = template.name;
+        document.getElementById('templateText').value = template.text;
+        
+        // Update UI
+        updateVariablesList();
+        updateTemplatePreview();
+        
+        showToast('Template loaded for editing');
+    }
+}
+
+// Add this event listener
+document.getElementById('editTemplateBtn').addEventListener('click', function() {
+    if (currentTemplate) {
+        editTemplate(currentTemplate.id);
+    }
+});
+
+// Update the saveTemplate function
+function saveTemplate() {
+    const name = document.getElementById('templateName').value.trim();
+    const text = document.getElementById('templateText').value.trim();
+    const templateId = document.getElementById('templateId').value;
+    
+    if (!name) {
+        showToast('Please enter a template name', 'danger');
+        return;
+    }
+    
+    if (!text) {
+        showToast('Please enter template content', 'danger');
+        return;
+    }
+    
+    const variables = extractVariables(text);
+    
+    if (templateId) {
+        // Update existing template
+        const templateIndex = templates.findIndex(t => t.id === templateId);
+        if (templateIndex !== -1) {
+            templates[templateIndex].name = name;
+            templates[templateIndex].text = text;
+            templates[templateIndex].variables = variables;
+            templates[templateIndex].createdAt = new Date().toISOString(); // Update timestamp
+            
+            showToast('Template updated successfully');
+        }
+    } else {
+        // Create new template
+        const template = {
+            id: Date.now().toString(),
+            name,
+            text,
+            variables,
+            createdAt: new Date().toISOString()
+        };
+        
+        templates.push(template);
+        showToast('Template saved successfully');
+    }
+    
+    localStorage.setItem('templates', JSON.stringify(templates));
+    updateTemplateList();
+    updateUserTemplatesList();
+    
+    // Clear form
+    document.getElementById('templateId').value = '';
+    document.getElementById('templateName').value = '';
+    document.getElementById('templateText').value = '';
+    updateVariablesList();
+    updateTemplatePreview();
+}
+            
+            function updateTemplateList() {
+                if (templates.length === 0) {
+                    templateList.innerHTML = `
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-folder2-open" style="font-size: 2rem;"></i>
+                            <p class="mt-2">No templates available</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                templateList.innerHTML = '';
+                templates.forEach(template => {
+                    const templateCard = document.createElement('div');
+                    templateCard.className = 'card template-card';
+                    templateCard.innerHTML = `
+                        <div class="card-body">
+                            <h5 class="card-title">${template.name}</h5>
+                            <p class="card-text text-muted small">Variables: ${template.variables.length}</p>
+                            <button class="btn btn-sm btn-primary load-template-btn" data-id="${template.id}">
+                                <i class="bi bi-arrow-right-circle"></i> Load
+                            </button>
+                        </div>
+                    `;
+                    templateList.appendChild(templateCard);
+                });
+                
+                document.querySelectorAll('.load-template-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const templateId = this.getAttribute('data-id');
+                        loadTemplate(templateId);
+                        
+                        // Switch to load tab
+                        const loadTab = new bootstrap.Tab(document.getElementById('load-tab'));
+                        loadTab.show();
+                    });
+                });
+            }
+            
+            function updateUserTemplatesList() {
+                if (templates.length === 0) {
+                    userTemplatesList.innerHTML = `
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-collection" style="font-size: 2rem;"></i>
+                            <p class="mt-2">No templates saved yet</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                userTemplatesList.innerHTML = '';
+                templates.forEach(template => {
+                    const templateCard = document.createElement('div');
+                    templateCard.className = 'card template-card mb-2';
+                    templateCard.setAttribute('data-id', template.id);
+                    templateCard.innerHTML = `
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">${template.name}</h5>
+                                <span class="badge bg-primary rounded-pill">${template.variables.length} vars</span>
+                            </div>
+                            <p class="card-text text-muted small mt-2">
+                                Created: ${new Date(template.createdAt).toLocaleString()}
+                            </p>
+                        </div>
+                    `;
+                    userTemplatesList.appendChild(templateCard);
+                    
+                    templateCard.addEventListener('click', function() {
+                        const templateId = this.getAttribute('data-id');
+                        selectTemplate(templateId);
+                    });
+                });
+            }
+            
+            function selectTemplate(templateId) {
+                selectedTemplateId = templateId;
+                const template = templates.find(t => t.id === templateId);
+                
+                if (template) {
+                    // Highlight selected template
+                    document.querySelectorAll('#userTemplatesList .template-card').forEach(card => {
+                        if (card.getAttribute('data-id') === templateId) {
+                            card.classList.add('border-primary');
+                        } else {
+                            card.classList.remove('border-primary');
+                        }
+                    });
+                    
+                    // Show action buttons
+                    templateActionButtons.style.display = 'block';
+                    
+                    // Update template details
+                    templateDetails.innerHTML = `
+                        <h5>${template.name}</h5>
+                        <p class="text-muted mb-2">Variables: ${template.variables.length}</p>
+                        <div class="mb-3">
+                            ${template.variables.map(v => `<span class="badge bg-info me-1 mb-1">${v}</span>`).join('')}
+                        </div>
+                        <p class="small text-muted mb-2">Created: ${new Date(template.createdAt).toLocaleString()}</p>
+                        <p class="small text-muted">Last modified: ${new Date(template.createdAt).toLocaleString()}</p>
+                    `;
+                }
+            }
+            
+            function loadTemplate(templateId) {
+                const template = templates.find(t => t.id === templateId);
+                
+                if (template) {
+                    currentTemplate = template;
+                    loadedTemplateName.textContent = template.name;
+                    
+                    // Create input fields for each variable
+                    templateVariablesContainer.innerHTML = '';
+                    
+                    if (template.variables.length === 0) {
+                        templateVariablesContainer.innerHTML = `
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> This template has no variables to replace.
+                            </div>
+                        `;
+                        generateOutputBtn.disabled = true;
+                    } else {
+                        template.variables.forEach(variable => {
+                            const inputGroup = document.createElement('div');
+                            inputGroup.className = 'mb-3';
+                            inputGroup.innerHTML = `
+                                <label for="${variable}" class="form-label">${variable}</label>
+                                <input type="text" class="form-control variable-input" id="${variable}" 
+                                       placeholder="Enter value for ${variable}">
+                            `;
+                            templateVariablesContainer.appendChild(inputGroup);
+                        });
+                        
+                        generateOutputBtn.disabled = false;
+                    }
+                    
+                    // Hide output container
+                    templateOutputContainer.style.display = 'none';
+                }
+            }
+            
+            function generateOutput() {
+    if (!currentTemplate) return;
+    
+    const variables = currentTemplate.variables;
+    let result = currentTemplate.text;
+    
+    variables.forEach(variable => {
+        const value = document.getElementById(variable).value;
+        result = result.replace(new RegExp(`\\{\\{${variable}\\}\\}`, 'g'), value || `{{${variable}}}`);
+    });
+    
+    // Preserve line breaks in the output
+    templateOutput.innerHTML = result.replace(/\n/g, '<br>');
+    templateOutputContainer.style.display = 'block';
+}
+
+function copyOutputToClipboard() {
+    const text = templateOutput.innerHTML.replace(/<br>/g, '\n');
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard!');
+    }).catch(err => {
+        showToast('Failed to copy: ' + err, 'danger');
+    });
+}
+            
+            function importTemplate() {
+                try {
+                    const json = importJsonTextarea.value.trim();
+                    if (!json) {
+                        showToast('Please enter JSON data', 'danger');
+                        return;
+                    }
+                    
+                    const templateData = JSON.parse(json);
+                    
+                    if (!templateData.name || !templateData.text) {
+                        showToast('Invalid template format', 'danger');
+                        return;
+                    }
+                    
+                    const variables = extractVariables(templateData.text);
+                    
+                    const template = {
+                        id: Date.now().toString(),
+                        name: templateData.name,
+                        text: templateData.text,
+                        variables,
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    templates.push(template);
+                    localStorage.setItem('templates', JSON.stringify(templates));
+                    
+                    showToast('Template imported successfully');
+                    updateTemplateList();
+                    updateUserTemplatesList();
+                    importJsonTextarea.value = '';
+                    
+                } catch (error) {
+                    showToast('Invalid JSON: ' + error.message, 'danger');
+                }
+            }
+            
+            function exportTemplate() {
+                if (!selectedTemplateId) return;
+                
+                const template = templates.find(t => t.id === selectedTemplateId);
+                if (template) {
+                    const json = JSON.stringify(template, null, 2);
+                    navigator.clipboard.writeText(json).then(() => {
+                        showToast('Template exported to clipboard!');
+                    }).catch(err => {
+                        showToast('Failed to export: ' + err, 'danger');
+                    });
+                }
+            }
+            
+            function exportAllTemplates() {
+                const json = JSON.stringify(templates, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'templates.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showToast('All templates exported successfully');
+            }
+            
+            function renameTemplate() {
+                if (!selectedTemplateId) return;
+                
+                const modal = new bootstrap.Modal(document.getElementById('renameModal'));
+                newTemplateNameInput.value = templates.find(t => t.id === selectedTemplateId).name;
+                modal.show();
+            }
+            
+            function saveRename() {
+                const newName = newTemplateNameInput.value.trim();
+                
+                if (!newName) {
+                    showToast('Please enter a template name', 'danger');
+                    return;
+                }
+                
+                if (!selectedTemplateId) return;
+                
+                const templateIndex = templates.findIndex(t => t.id === selectedTemplateId);
+                if (templateIndex !== -1) {
+                    templates[templateIndex].name = newName;
+                    localStorage.setItem('templates', JSON.stringify(templates));
+                    
+                    showToast('Template renamed successfully');
+                    updateUserTemplatesList();
+                    
+                    // If this is the currently loaded template, update its name
+                    if (currentTemplate && currentTemplate.id === selectedTemplateId) {
+                        loadedTemplateName.textContent = newName;
+                    }
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('renameModal'));
+                    modal.hide();
+                }
+            }
+            
+            function deleteTemplate() {
+                if (!selectedTemplateId) return;
+                
+                if (confirm('Are you sure you want to delete this template?')) {
+                    templates = templates.filter(t => t.id !== selectedTemplateId);
+                    localStorage.setItem('templates', JSON.stringify(templates));
+                    
+                    showToast('Template deleted successfully');
+                    updateUserTemplatesList();
+                    
+                    // Hide action buttons
+                    templateActionButtons.style.display = 'none';
+                    templateDetails.innerHTML = `
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-info-circle" style="font-size: 2rem;"></i>
+                            <p class="mt-2">Select a template to view details</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            function loadSelectedTemplate() {
+                if (!selectedTemplateId) return;
+                
+                // Switch to load tab
+                const loadTab = new bootstrap.Tab(document.getElementById('load-tab'));
+                loadTab.show();
+                
+                // Load the template
+                loadTemplate(selectedTemplateId);
+            }
+            
+            // Event Listeners
+            templateTextInput.addEventListener('input', updateVariablesList);
+            templateTextInput.addEventListener('input', updateTemplatePreview);
+            
+            saveTemplateBtn.addEventListener('click', saveTemplate);
+            
+            generateOutputBtn.addEventListener('click', generateOutput);
+            copyOutputBtn.addEventListener('click', copyOutputToClipboard);
+            
+            importTemplateBtn.addEventListener('click', importTemplate);
+            exportAllTemplatesBtn.addEventListener('click', exportAllTemplates);
+            
+            loadSelectedTemplateBtn.addEventListener('click', loadSelectedTemplate);
+            renameTemplateBtn.addEventListener('click', renameTemplate);
+            deleteTemplateBtn.addEventListener('click', deleteTemplate);
+            exportTemplateBtn.addEventListener('click', exportTemplate);
+            saveRenameBtn.addEventListener('click', saveRename);
+            
+            // Initialize
+            updateTemplateList();
+            updateUserTemplatesList();
+            updateVariablesList();
+            updateTemplatePreview();
+        });
+    </script>
+</body>
+</html>
