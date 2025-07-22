@@ -394,11 +394,13 @@
     }
 
     function removeRegex(regexStr) {
-        regexes = regexes.filter(r => r !== regexStr);
-        selectedMatches = selectedMatches.filter(m => m.regexPattern !== regexStr);
-        saveRegexes();
-        renderAll();
-    }
+    	if (confirm('Are you sure you want to delete this filter?')) {
+        	regexes = regexes.filter(r => r !== regexStr);
+        	selectedMatches = selectedMatches.filter(m => m.regexPattern !== regexStr);
+        	saveRegexes();
+        	renderAll();
+    	}
+	}	
 
     function saveNote() {
         const content = document.getElementById('noteContent').value.trim();
