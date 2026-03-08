@@ -456,19 +456,27 @@
 <body>
 
     <div class="window">
-        <div class="title-bar">
-            <div class="title-stripes"></div>
-            <div class="close-box" onclick="window.location.href='/'">X</div>
-            <span class="title-text" data-i18n="streak.title">Habit Tracker</span>
-            <div class="title-controls">
-                <button class="icon-btn" onclick="toggleFullScreen()" title="Full Screen">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-                        stroke-linecap="square" stroke-linejoin="miter">
-                        <path class="icon-expand" d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1"></path>
-                        <path class="icon-contract" d="M21 9H15V3M21 3l-6 6M3 15h6v6M3 21l6-6"></path>
-                    </svg>
-                </button>
-            </div>
+<div class="title-bar">
+    <div class="title-stripes"></div>
+    <div class="close-box" onclick="window.location.href='./'">X</div>
+    <span class="title-text" data-i18n="streak.title">Habit Tracker</span>
+    <div class="title-controls">
+        <!-- Full Screen Button -->
+        <button class="icon-btn" onclick="toggleFullScreen()" title="Full Screen">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <path d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1"></path>
+            </svg>
+        </button>
+        
+        <!-- NEW: Install App Button -->
+        <button class="icon-btn" onclick="handleInstallClick()" title="Install to Home Screen" id="install-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <path d="M12 3v18M5 10l7-7 7 7"/>
+            </svg>
+        </button>
+    </div>
+</div>
+
         </div>
 
         <div class="period-controls">
@@ -537,34 +545,120 @@
         // INSTALL PROMPT
         // ========================================
         
-        let deferredPrompt = null;
-        const installPrompt = document.getElementById('install-prompt');
+// ========================================
+// INSTALL BUTTON HANDLER
+// ========================================
 
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            if (installPrompt) installPrompt.style.display = 'block';
-            console.log('[App] Install prompt available');
-        });
+let deferredPrompt = null;
+let isInstalled = false;
 
-        window.addEventListener('appinstalled', () => {
-            console.log('[App] PWA installed');
-            if (installPrompt) installPrompt.style.display = 'none';
-            deferredPrompt = null;
-        });
-
-        function promptInstall() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    console.log('[App] Install choice:', choiceResult.outcome);
-                });
-                deferredPrompt = null;
-                if (installPrompt) installPrompt.style.display = 'none';
-            }
+// Check if already installed
+function checkIfInstalled() {
+    // Check display mode
+    if (window.navigator.standalone === true) {
+        isInstalled = true;
+    } else if (window.matchMedia('(display-mode: standalone)').matches) {
+        isInstalled = true;
+    }
+    
+    // Update button visibility
+    const installBtn = document.getElementById('install-btn');
+    if (installBtn) {
+        if (isInstalled) {
+            installBtn.style.display = 'none'; // Hide if installed
+        } else {
+            installBtn.style.display = 'flex'; // Show if not installed
         }
+    }
+}
 
-        // ========================================
+// Handle install button click
+function handleInstallClick() {
+    if (deferredPrompt) {
+        // Show the install prompt
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choice) => {
+            console.log('Install choice:', choice.outcome);
+            deferredPrompt = null;
+            checkIfInstalled();
+        });
+    } else {
+        // Show manual instructions
+        showInstallInstructions();
+    }
+}
+
+// Show manual install instructions
+function showInstallInstructions() {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.8); z-index: 99999;
+        display: flex; align-items: center; justify-content: center;
+    `;
+    
+    modal.innerHTML = `
+        <div style="
+            background: white; border: 2px solid black;
+            box-shadow: 8px 8px 0 black;
+            padding: 20px; max-width: 320px;
+            text-align: center;
+        ">
+            <h3 style="margin-top: 0;">Install to Home Screen</h3>
+            <p style="font-size: 0.9rem; color: #666;">
+                <strong>Chrome on Android:</strong>
+            </p>
+            <div style="text-align: left; font-size: 0.85rem; background: #f5f5f5; padding: 12px; border-radius: 4px;">
+                1. Tap the <strong>⋮ menu</strong> (top-right)<br>
+                2. Select <strong>"Install App"</strong> or<br><strong>"Add to Home screen"</strong><br>
+                3. Confirm the installation
+            </div>
+            <div style="margin-top: 15px;">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='100' y='40' text-anchor='middle' font-family='Arial' font-size='14' fill='%23333'%3EChrome Menu%3C/text%3E%3Ccircle cx='185' cy='20' r='10' fill='none' stroke='%23333' stroke-width='2'/%3E%3Cpath d='M180 15 L190 15 M180 20 L190 20 M180 25 L190 25' stroke='%23333' stroke-width='2'/%3E%3Ctext x='100' y='80' text-anchor='middle' font-family='Arial' font-size='12' fill='%23333'%3E• Install App%3C/text%3E%3Ctext x='100' y='100' text-anchor='middle' font-family='Arial' font-size='12' fill='%23666'%3E• Add to Home screen%3C/text%3E%3C/svg%3E" 
+                     alt="Install instructions" style="width: 100%; border: 1px solid #ddd;">
+            </div>
+            <button onclick="this.closest('.modal-overlay')?.remove()" 
+                style="margin-top: 15px; padding: 10px 24px; background: black; color: white; border: none; font-weight: bold;">
+                Got it!
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Allow closing by clicking outside
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.remove();
+    };
+}
+
+// Listen for install prompt availability
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    console.log('[Install] Prompt available');
+    
+    // Show notification or change button appearance
+    const installBtn = document.getElementById('install-btn');
+    if (installBtn) {
+        installBtn.style.background = '#4CAF50'; // Green to indicate ready
+        installBtn.style.cursor = 'pointer';
+    }
+});
+
+// Listen for app installation
+window.addEventListener('appinstalled', () => {
+    console.log('[Install] App installed!');
+    deferredPrompt = null;
+    isInstalled = true;
+    checkIfInstalled();
+});
+
+// Check on load and when visibility changes
+window.addEventListener('load', checkIfInstalled);
+window.addEventListener('pageshow', checkIfInstalled);
+
+// ========================================
         // OFFLINE/ONLINE STATUS
         // ========================================
         
