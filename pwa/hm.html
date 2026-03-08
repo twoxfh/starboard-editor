@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <meta charset="UTF-8">
+    <title>Habit Tracker</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Habits">
+    
+    <!-- Link to Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+
+    <!-- [Keep all your CSS here] -->
+    <style>
+        /* ... all your existing CSS ... */
+    </style>
+</head>
+
+<body>
+    <!-- [Keep all your HTML content] -->
+
+    <script>
+        // ========================================
+        // SERVICE WORKER REGISTRATION
+        // ========================================
+        
+        console.log('Registering Service Worker...');
+        
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+                    console.log('[App] ServiceWorker registered:', registration.scope);
+                    
+                    // Check for updates periodically
+                    setInterval(() => {
+                        registration.update();
+                    }, 60000); // Check every minute
+                    
+                    // Force update on activation
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                console.log('[App] New version available');
+                            }
+                        });
+                    });
+                    
+                } catch (error) {
+                    console.error('[App] ServiceWorker registration failed:', error);
+                }
+            });
+        } else {
+            console.log('[App] Service Workers not supported');
+        }
+
+        // ========================================
+        // INSTALL PROMPT
+        // ========================================
+        
+        let deferredPrompt = null;
+        const installPrompt = document.getElementById('install-prompt');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (installPrompt) installPrompt.style.display = 'block';
+            console.log('[App] Install prompt available');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('[App] PWA installed');
+            if (installPrompt) installPrompt.style.display = 'none';
+            deferredPrompt = null;
+        });
+
+        function promptInstall() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    console.log('[App] Install choice:', choiceResult.outcome);
+                });
+                deferredPrompt = null;
+                if (installPrompt) installPrompt.style.display = 'none';
+            }
+        }
+
+        // ========================================
+        // OFFLINE/ONLINE STATUS
+        // ========================================
+        
+        function updateConnectionStatus() {
+            const statusEl = document.getElementById('connection-status');
+            if (statusEl) {
+                if (navigator.onLine) {
+                    statusEl.textContent = 'Online';
+                    statusEl.style.color = 'green';
+                } else {
+                    statusEl.textContent = 'Offline';
+                    statusEl.style.color = 'red';
+                }
+            }
+        }
+
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        updateConnectionStatus(); // Initial check
+
+        // ========================================
+        // APP LOGIC (Original)
+        // ========================================
+
+        let habits = [];
+        let history = {};
+        let currentStart = new Date();
+        let today = new Date();
+        let habitToDeleteId = null;
+
+        window.onload = () => {
+            initCurrentWeek();
+            loadLocalData();
+        };
+
+        // [Keep all your original app functions here...]
+        
+        function escapeHTML(text) {
+            const div = document.createElement('div');
+            div.appendChild(document.createTextNode(text));
+            return div.innerHTML;
+        }
+
+        function initCurrentWeek() {
+            const day = currentStart.getDay();
+            const diff = currentStart.getDate() - day + (day === 0 ? -6 : 1);
+            currentStart.setDate(diff);
+        }
+
+        function loadLocalData() {
+            try {
+                habits = JSON.parse(localStorage.getItem('streak_habits')) || [];
+                history = JSON.parse(localStorage.getItem('streak_history')) || {};
+            } catch (e) {
+                habits = [];
+                history = {};
+                console.error('Storage error:', e);
+            }
+            renderView();
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('streak_habits', JSON.stringify(habits));
+                localStorage.setItem('streak_history', JSON.stringify(history));
+            } catch (e) {
+                alert('Storage full! Delete some habits.');
+                console.error('Storage error:', e);
+            }
+            renderView();
+        }
+
+        function changeWeek(delta) {
+            currentStart.setDate(currentStart.getDate() + (delta * 7));
+            renderView();
+        }
+
+        function renderView() {
+            const container = document.getElementById('tracker-grid');
+            container.innerHTML = '';
+
+            const weekEnd = new Date(currentStart);
+            weekEnd.setDate(currentStart.getDate() + 6);
+
+            const locale = document.documentElement.lang || 'en';
+            const startStr = currentStart.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+            const endStr = weekEnd.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+
+            document.getElementById('current-period-label').innerText = `${startStr} - ${endStr}`;
+
+            const headerRow = document.createElement('div');
+            headerRow.className = 'habit-row';
+
+            const headerName = document.createElement('div');
+            headerName.className = 'habit-name-col';
+            headerName.innerText = 'Habit';
+            headerRow.appendChild(headerName);
+
+            const headerDays = document.createElement('div');
+            headerDays.className = 'days-container';
+
+            for (let i = 0; i < 7; i++) {
+                const dayDate = new Date(currentStart);
+                dayDate.setDate(currentStart.getDate() + i);
+
+                const dayNum = dayDate.getDate();
+                const dayName = dayDate.toLocaleDateString(locale, { weekday: 'narrow' });
+
+                const cell = document.createElement('div');
+                cell.className = 'day-cell header';
+                if (isToday(dayDate)) cell.classList.add('today');
+
+                cell.innerHTML = `<span class="day-num">${dayNum}</span><span class="day-name">${dayName}</span>`;
+                headerDays.appendChild(cell);
+            }
+            headerRow.appendChild(headerDays);
+            container.appendChild(headerRow);
+
+            if (habits.length === 0) {
+                const empty = document.createElement('div');
+                empty.style.padding = "20px";
+                empty.style.textAlign = "center";
+                empty.style.fontStyle = "italic";
+                empty.innerText = 'No habits yet. Add one below!';
+                container.appendChild(empty);
+                return;
+            }
+
+            habits.forEach(habit => {
+                const row = document.createElement('div');
+                row.className = 'habit-row';
+
+                const nameCol = document.createElement('div');
+                nameCol.className = 'habit-name-col';
+                nameCol.innerHTML = `
+                    <span class="habit-name-text">${escapeHTML(habit.name)}</span>
+                    <span class="delete-btn" onclick="deleteHabit('${habit.id}')">×</span>
+                `;
+
+                const daysRow = document.createElement('div');
+                daysRow.className = 'days-container';
+
+                for (let i = 0; i < 7; i++) {
+                    const dayDate = new Date(currentStart);
+                    dayDate.setDate(currentStart.getDate() + i);
+
+                    const y = dayDate.getFullYear();
+                    const m = String(dayDate.getMonth() + 1).padStart(2, '0');
+                    const d = String(dayDate.getDate()).padStart(2, '0');
+                    const dateKey = `${y}-${m}-${d}`;
+                    const recordKey = `${habit.id}_${dateKey}`;
+
+                    const cell = document.createElement('div');
+                    cell.className = 'day-cell';
+
+                    if (history[recordKey]) cell.classList.add('completed');
+                    if (isToday(dayDate)) cell.classList.add('today');
+
+                    cell.onclick = () => toggleHabit(habit.id, dateKey);
+                    daysRow.appendChild(cell);
+                }
+
+                row.appendChild(nameCol);
+                row.appendChild(daysRow);
+                container.appendChild(row);
+            });
+        }
+
+        function isToday(date) {
+            return date.getDate() === today.getDate() &&
+                date.getMonth() === today.getMonth() &&
+                date.getFullYear() === today.getFullYear();
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') addHabit();
+        }
+
+        function addHabit() {
+            const input = document.getElementById('new-habit-input');
+            const name = input.value.trim();
+            if (!name) return;
+
+            habits.push({ id: Date.now().toString(), name: name });
+            saveData();
+            input.value = "";
+        }
+
+        function deleteHabit(id) {
+            habitToDeleteId = id;
+            document.getElementById('delete-modal').style.display = 'flex';
+        }
+
+        function confirmDelete() {
+            if (!habitToDeleteId) return;
+            const id = habitToDeleteId;
+
+            habits = habits.filter(h => h.id !== id);
+            Object.keys(history).forEach(k => {
+                if (k.startsWith(id)) delete history[k];
+            });
+            saveData();
+            closeModal();
+        }
+
+        function closeModal() {
+            document.getElementById('delete-modal').style.display = 'none';
+            habitToDeleteId = null;
+        }
+
+        function toggleHabit(habitId, dateKey) {
+            const recordKey = `${habitId}_${dateKey}`;
+            
+            if (history[recordKey]) {
+                delete history[recordKey];
+            } else {
+                history[recordKey] = true;
+            }
+            saveData();
+        }
+
+        function toggleFullScreen() {
+            document.querySelector('.window').classList.toggle('fullscreen');
+        }
+
+        // ========================================
+        // DEBUG: Check Cache Status
+        // ========================================
+        
+        async function checkCache() {
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                console.log('Cache names:', cacheNames);
+                
+                for (const name of cacheNames) {
+                    const cache = await caches.open(name);
+                    const keys = await cache.keys();
+                    console.log(`Cache "${name}" contains ${keys.length} items:`, keys.map(k => k.url));
+                }
+            }
+        }
+
+        // Run cache check on load
+        checkCache();
+    </script>
+</body>
+
+</html>
