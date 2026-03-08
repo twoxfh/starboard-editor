@@ -515,30 +515,18 @@
         const installPrompt = document.getElementById('install-prompt');
 
         // Register Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                    .then((registration) => {
-                        console.log('ServiceWorker registered:', registration.scope);
-                        
-                        // Check for updates
-                        registration.addEventListener('updatefound', () => {
-                            const newWorker = registration.installing;
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // New content available
-                                    if (confirm('New version available! Reload to update?')) {
-                                        window.location.reload();
-                                    }
-                                }
-                            });
-                        });
-                    })
-                    .catch((error) => {
-                        console.log('ServiceWorker registration failed:', error);
-                    });
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+            .then((registration) => {
+                console.log('ServiceWorker registered:', registration.scope);
+                // ... rest of code
+            })
+            .catch((error) => {
+                console.log('ServiceWorker registration failed:', error);
             });
-        }
+    });
+}
 
         // Handle Before Install Prompt
         window.addEventListener('beforeinstallprompt', (e) => {
