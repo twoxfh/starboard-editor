@@ -13,15 +13,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Habits">
     
-    <!-- Link to Manifest -->
+    <!-- Manifest -->
     <link rel="manifest" href="./manifest.json">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
-    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+    <link rel="apple-touch-icon" href="./icon-192.png">
 
     <style>
-        /* [Keep all your existing CSS here - identical to original] */
         :root {
             --bg-color: #ffffff;
             --text-color: #000000;
@@ -34,6 +33,7 @@
         * {
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
+            box-sizing: border-box;
         }
 
         body {
@@ -46,7 +46,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            box-sizing: border-box;
         }
 
         .window {
@@ -110,6 +109,7 @@
             font-size: 1rem;
             line-height: 1;
             box-shadow: 2px 2px 0 black;
+            cursor: pointer;
         }
 
         .close-box:active {
@@ -127,6 +127,7 @@
             z-index: 2;
             display: flex;
             align-items: center;
+            gap: 4px;
         }
 
         .icon-btn {
@@ -138,6 +139,7 @@
             align-items: center;
             justify-content: center;
             box-shadow: 2px 2px 0 black;
+            cursor: pointer;
         }
 
         .icon-btn:active {
@@ -175,6 +177,7 @@
             box-shadow: 2px 2px 0 black;
             min-width: 44px;
             min-height: 36px;
+            cursor: pointer;
         }
 
         .nav-btn:active {
@@ -249,6 +252,7 @@
             align-items: center;
             justify-content: center;
             border-radius: 4px;
+            cursor: pointer;
         }
 
         .delete-btn:hover, .delete-btn:active {
@@ -279,6 +283,7 @@
             align-items: center;
             font-size: 0.7rem;
             position: relative;
+            cursor: pointer;
         }
 
         .day-cell:last-child {
@@ -360,7 +365,6 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
-            box-sizing: border-box;
         }
 
         .modal-box {
@@ -378,6 +382,40 @@
             justify-content: center;
             margin-top: 15px;
             gap: 10px;
+        }
+
+        /* Install Instructions Modal */
+        .install-instructions {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 99999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .install-instructions.visible {
+            display: flex;
+        }
+
+        .install-box {
+            background: white;
+            border: 2px solid black;
+            box-shadow: 8px 8px 0 black;
+            padding: 20px;
+            max-width: 320px;
+            text-align: center;
+        }
+
+        .install-box img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            margin: 10px 0;
         }
 
         @media (max-width: 360px) {
@@ -426,57 +464,28 @@
                 animation: none !important;
             }
         }
-
-        /* PWA Install Prompt */
-        .install-prompt {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #333;
-            color: white;
-            padding: 12px;
-            text-align: center;
-            z-index: 9999;
-        }
-        
-        .install-prompt button {
-            background: white;
-            color: black;
-            border: none;
-            padding: 8px 16px;
-            margin-left: 10px;
-            font-weight: bold;
-            cursor: pointer;
-        }
     </style>
 </head>
 
 <body>
 
     <div class="window">
-<div class="title-bar">
-    <div class="title-stripes"></div>
-    <div class="close-box" onclick="window.location.href='./'">X</div>
-    <span class="title-text" data-i18n="streak.title">Habit Tracker</span>
-    <div class="title-controls">
-        <!-- Full Screen Button -->
-        <button class="icon-btn" onclick="toggleFullScreen()" title="Full Screen">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                <path d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1"></path>
-            </svg>
-        </button>
-        
-        <!-- NEW: Install App Button -->
-        <button class="icon-btn" onclick="handleInstallClick()" title="Install to Home Screen" id="install-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                <path d="M12 3v18M5 10l7-7 7 7"/>
-            </svg>
-        </button>
-    </div>
-</div>
-
+        <div class="title-bar">
+            <div class="title-stripes"></div>
+            <div class="close-box" onclick="window.location.href='./'">X</div>
+            <span class="title-text">Habit Tracker</span>
+            <div class="title-controls">
+                <button class="icon-btn" onclick="toggleFullScreen()" title="Full Screen">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <path d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1"></path>
+                    </svg>
+                </button>
+                <button class="icon-btn" onclick="handleInstallClick()" title="Install App" id="install-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <path d="M12 3v18M5 10l7-7 7 7"/>
+                    </svg>
+                </button>
+            </div>
         </div>
 
         <div class="period-controls">
@@ -489,9 +498,8 @@
         </div>
 
         <div class="footer-input">
-            <input type="text" id="new-habit-input" placeholder="New Habit (e.g. Read)" onkeypress="handleEnter(event)"
-                data-i18n-placeholder="streak.placeholder.new" autocomplete="off">
-            <button class="nav-btn" onclick="addHabit()" data-i18n="streak.btn.add">Add</button>
+            <input type="text" id="new-habit-input" placeholder="New Habit (e.g. Read)" onkeypress="handleEnter(event)" autocomplete="off">
+            <button class="nav-btn" onclick="addHabit()">Add</button>
         </div>
 
         <div id="status-bar">Local Mode • <span id="connection-status">Online</span></div>
@@ -499,188 +507,121 @@
 
     <div id="delete-modal" class="modal-overlay">
         <div class="modal-box">
-            <h3 data-i18n="streak.modal.delete.title">Delete Habit?</h3>
-            <p data-i18n="streak.modal.delete.desc">Remove this habit and its history?</p>
+            <h3>Delete Habit?</h3>
+            <p>Remove this habit and its history?</p>
             <div class="modal-buttons">
-                <button class="nav-btn" onclick="confirmDelete()" data-i18n="common.delete">Delete</button>
-                <button class="nav-btn" onclick="closeModal()" data-i18n="common.cancel">Cancel</button>
+                <button class="nav-btn" onclick="confirmDelete()">Delete</button>
+                <button class="nav-btn" onclick="closeModal()">Cancel</button>
             </div>
         </div>
     </div>
 
-    <!-- PWA Install Prompt -->
-    <div id="install-prompt" class="install-prompt">
-        Add to Home Screen for offline access!
-        <button onclick="promptInstall()">Install</button>
-    </div>
-
-    <script>
-        console.log('Registering Service Worker...');
-        
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', async () => {
-                try {
-                    const registration = await navigator.serviceWorker.register('./sw.js', { scope: './' });
-                    console.log('[App] ServiceWorker registered:', registration.scope);
-
-                    // Force update on activation
-                    registration.addEventListener('updatefound', () => {
-                        const newWorker = registration.installing;
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                console.log('[App] New version available');
-                            }
-                        });
-                    });
-                    
-                } catch (error) {
-                    console.error('[App] ServiceWorker registration failed:', error);
-                }
-            });
-        } else {
-            console.log('[App] Service Workers not supported');
-        }
-
-        // ========================================
-        // INSTALL PROMPT
-        // ========================================
-        
-// ========================================
-// INSTALL BUTTON HANDLER
-// ========================================
-
-let deferredPrompt = null;
-let isInstalled = false;
-
-// Check if already installed
-function checkIfInstalled() {
-    // Check display mode
-    if (window.navigator.standalone === true) {
-        isInstalled = true;
-    } else if (window.matchMedia('(display-mode: standalone)').matches) {
-        isInstalled = true;
-    }
-    
-    // Update button visibility
-    const installBtn = document.getElementById('install-btn');
-    if (installBtn) {
-        if (isInstalled) {
-            installBtn.style.display = 'none'; // Hide if installed
-        } else {
-            installBtn.style.display = 'flex'; // Show if not installed
-        }
-    }
-}
-
-// Handle install button click
-function handleInstallClick() {
-    if (deferredPrompt) {
-        // Show the install prompt
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then((choice) => {
-            console.log('Install choice:', choice.outcome);
-            deferredPrompt = null;
-            checkIfInstalled();
-        });
-    } else {
-        // Show manual instructions
-        showInstallInstructions();
-    }
-}
-
-// Show manual install instructions
-function showInstallInstructions() {
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.8); z-index: 99999;
-        display: flex; align-items: center; justify-content: center;
-    `;
-    
-    modal.innerHTML = `
-        <div style="
-            background: white; border: 2px solid black;
-            box-shadow: 8px 8px 0 black;
-            padding: 20px; max-width: 320px;
-            text-align: center;
-        ">
-            <h3 style="margin-top: 0;">Install to Home Screen</h3>
-            <p style="font-size: 0.9rem; color: #666;">
-                <strong>Chrome on Android:</strong>
-            </p>
+    <!-- Install Instructions -->
+    <div id="install-instructions" class="install-instructions">
+        <div class="install-box">
+            <h3>Install to Home Screen</h3>
+            <p style="font-size: 0.9rem; color: #666;"><strong>Chrome on Android:</strong></p>
             <div style="text-align: left; font-size: 0.85rem; background: #f5f5f5; padding: 12px; border-radius: 4px;">
                 1. Tap the <strong>⋮ menu</strong> (top-right)<br>
                 2. Select <strong>"Install App"</strong> or<br><strong>"Add to Home screen"</strong><br>
                 3. Confirm the installation
             </div>
-            <div style="margin-top: 15px;">
-                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='100' y='40' text-anchor='middle' font-family='Arial' font-size='14' fill='%23333'%3EChrome Menu%3C/text%3E%3Ccircle cx='185' cy='20' r='10' fill='none' stroke='%23333' stroke-width='2'/%3E%3Cpath d='M180 15 L190 15 M180 20 L190 20 M180 25 L190 25' stroke='%23333' stroke-width='2'/%3E%3Ctext x='100' y='80' text-anchor='middle' font-family='Arial' font-size='12' fill='%23333'%3E• Install App%3C/text%3E%3Ctext x='100' y='100' text-anchor='middle' font-family='Arial' font-size='12' fill='%23666'%3E• Add to Home screen%3C/text%3E%3C/svg%3E" 
-                     alt="Install instructions" style="width: 100%; border: 1px solid #ddd;">
-            </div>
-            <button onclick="this.closest('.modal-overlay')?.remove()" 
-                style="margin-top: 15px; padding: 10px 24px; background: black; color: white; border: none; font-weight: bold;">
-                Got it!
-            </button>
+            <button onclick="closeInstallInstructions()" style="margin-top: 15px; padding: 10px 24px; background: black; color: white; border: none; font-weight: bold;">Got it!</button>
         </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Allow closing by clicking outside
-    modal.onclick = (e) => {
-        if (e.target === modal) modal.remove();
-    };
-}
+    </div>
 
-// Listen for install prompt availability
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    console.log('[Install] Prompt available');
-    
-    // Show notification or change button appearance
-    const installBtn = document.getElementById('install-btn');
-    if (installBtn) {
-        installBtn.style.background = '#4CAF50'; // Green to indicate ready
-        installBtn.style.cursor = 'pointer';
-    }
-});
+    <script>
+        // ========================================
+        // PWA SERVICE WORKER
+        // ========================================
+        
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+                    console.log('[SW] Registered:', registration.scope);
+                    
+                    // Check for updates every minute
+                    setInterval(() => registration.update(), 60000);
+                    
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                console.log('[SW] Update available');
+                            }
+                        });
+                    });
+                } catch (error) {
+                    console.error('[SW] Registration failed:', error);
+                }
+            });
+        }
 
-// Listen for app installation
-window.addEventListener('appinstalled', () => {
-    console.log('[Install] App installed!');
-    deferredPrompt = null;
-    isInstalled = true;
-    checkIfInstalled();
-});
+        // ========================================
+        // INSTALL HANDLER
+        // ========================================
+        
+        let deferredPrompt = null;
+        let isInstalled = false;
 
-// Check on load and when visibility changes
-window.addEventListener('load', checkIfInstalled);
-window.addEventListener('pageshow', checkIfInstalled);
+        function checkIfInstalled() {
+            isInstalled = window.navigator.standalone === true || 
+                         window.matchMedia('(display-mode: standalone)').matches;
+            
+            const btn = document.getElementById('install-btn');
+            if (btn) {
+                btn.style.display = isInstalled ? 'none' : 'flex';
+            }
+        }
 
-// ========================================
-        // OFFLINE/ONLINE STATUS
+        function handleInstallClick() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(() => {
+                    deferredPrompt = null;
+                    checkIfInstalled();
+                });
+            } else {
+                document.getElementById('install-instructions').classList.add('visible');
+            }
+        }
+
+        function closeInstallInstructions() {
+            document.getElementById('install-instructions').classList.remove('visible');
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('[Install] Prompt available');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('[Install] App installed');
+            deferredPrompt = null;
+            checkIfInstalled();
+        });
+
+        window.addEventListener('load', checkIfInstalled);
+
+        // ========================================
+        // CONNECTION STATUS
         // ========================================
         
         function updateConnectionStatus() {
-            const statusEl = document.getElementById('connection-status');
-            if (statusEl) {
-                if (navigator.onLine) {
-                    statusEl.textContent = 'Online';
-                    statusEl.style.color = 'green';
-                } else {
-                    statusEl.textContent = 'Offline';
-                    statusEl.style.color = 'red';
-                }
+            const el = document.getElementById('connection-status');
+            if (el) {
+                el.textContent = navigator.onLine ? 'Online' : 'Offline';
+                el.style.color = navigator.onLine ? 'green' : 'red';
             }
         }
 
         window.addEventListener('online', updateConnectionStatus);
         window.addEventListener('offline', updateConnectionStatus);
-        updateConnectionStatus(); // Initial check
 
         // ========================================
-        // APP LOGIC (Original)
+        // APP LOGIC
         // ========================================
 
         let habits = [];
@@ -690,12 +631,11 @@ window.addEventListener('pageshow', checkIfInstalled);
         let habitToDeleteId = null;
 
         window.onload = () => {
+            updateConnectionStatus();
             initCurrentWeek();
             loadLocalData();
         };
 
-        // [Keep all your original app functions here...]
-        
         function escapeHTML(text) {
             const div = document.createElement('div');
             div.appendChild(document.createTextNode(text));
@@ -715,7 +655,6 @@ window.addEventListener('pageshow', checkIfInstalled);
             } catch (e) {
                 habits = [];
                 history = {};
-                console.error('Storage error:', e);
             }
             renderView();
         }
@@ -726,7 +665,6 @@ window.addEventListener('pageshow', checkIfInstalled);
                 localStorage.setItem('streak_history', JSON.stringify(history));
             } catch (e) {
                 alert('Storage full! Delete some habits.');
-                console.error('Storage error:', e);
             }
             renderView();
         }
@@ -749,6 +687,7 @@ window.addEventListener('pageshow', checkIfInstalled);
 
             document.getElementById('current-period-label').innerText = `${startStr} - ${endStr}`;
 
+            // Header row
             const headerRow = document.createElement('div');
             headerRow.className = 'habit-row';
 
@@ -770,13 +709,13 @@ window.addEventListener('pageshow', checkIfInstalled);
                 const cell = document.createElement('div');
                 cell.className = 'day-cell header';
                 if (isToday(dayDate)) cell.classList.add('today');
-
                 cell.innerHTML = `<span class="day-num">${dayNum}</span><span class="day-name">${dayName}</span>`;
                 headerDays.appendChild(cell);
             }
             headerRow.appendChild(headerDays);
             container.appendChild(headerRow);
 
+            // Empty state
             if (habits.length === 0) {
                 const empty = document.createElement('div');
                 empty.style.padding = "20px";
@@ -787,6 +726,7 @@ window.addEventListener('pageshow', checkIfInstalled);
                 return;
             }
 
+            // Habit rows
             habits.forEach(habit => {
                 const row = document.createElement('div');
                 row.className = 'habit-row';
@@ -884,27 +824,11 @@ window.addEventListener('pageshow', checkIfInstalled);
             document.querySelector('.window').classList.toggle('fullscreen');
         }
 
-        // ========================================
-        // DEBUG: Check Cache Status
-        // ========================================
-        
-        async function checkCache() {
-            if ('caches' in window) {
-                const cacheNames = await caches.keys();
-                console.log('Cache names:', cacheNames);
-                
-                for (const name of cacheNames) {
-                    const cache = await caches.open(name);
-                    const keys = await cache.keys();
-                    console.log(`Cache "${name}" contains ${keys.length} items:`, keys.map(k => k.url));
-                }
-            }
-        }
-
-        // Run cache check on load
-        checkCache();
+        // Prevent back button from exiting app
+        window.history.pushState(null, null, window.location.href);
+        window.addEventListener('popstate', () => {
+            window.history.pushState(null, null, window.location.href);
+        });
     </script>
 </body>
-
 </html>
-
