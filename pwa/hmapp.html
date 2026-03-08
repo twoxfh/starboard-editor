@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <meta charset="UTF-8">
+    <title>Habit Tracker</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Habits">
+    
+    <!-- Link to Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+
+    <style>
+        /* [Keep all your existing CSS here - identical to original] */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --border: 2px solid #000000;
+            --shadow: 4px 4px 0px #000000;
+            --stripe-pattern: repeating-linear-gradient(0deg, transparent, transparent 2px, #000 3px, #000 4px);
+            --touch-target-min: 44px;
+        }
+
+        * {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        body {
+            image-rendering: pixelated;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            min-height: 100vh;
+            background-color: #e5e5e5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        .window {
+            background: white;
+            border: 2px solid black;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 900px;
+            height: calc(100vh - 20px);
+            position: relative;
+        }
+
+        .title-bar {
+            height: 44px;
+            border-bottom: 2px solid black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            padding: 0 10px;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .title-stripes {
+            position: absolute;
+            top: 4px;
+            bottom: 4px;
+            left: 4px;
+            right: 4px;
+            background-image: var(--stripe-pattern);
+            z-index: 0;
+        }
+
+        .title-text {
+            background: white;
+            padding: 0 12px;
+            font-weight: bold;
+            z-index: 1;
+            font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .close-box {
+            position: absolute;
+            left: 8px;
+            width: 32px;
+            height: 32px;
+            border: 2px solid black;
+            background: white;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-family: sans-serif;
+            font-size: 1rem;
+            line-height: 1;
+            box-shadow: 2px 2px 0 black;
+        }
+
+        .close-box:active {
+            background: black;
+            color: white;
+            transform: translate(1px, 1px);
+            box-shadow: none;
+        }
+
+        .title-controls {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+            display: flex;
+            align-items: center;
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border: 2px solid black;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 2px 2px 0 black;
+        }
+
+        .icon-btn:active {
+            background: black;
+            color: white;
+            transform: translate(1px, 1px);
+            box-shadow: none;
+        }
+
+        .period-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 2px solid black;
+            background: #eee;
+            flex-shrink: 0;
+        }
+
+        .period-display {
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: calc(100% - 80px);
+        }
+
+        .nav-btn {
+            background: white;
+            border: 2px solid black;
+            padding: 6px 14px;
+            font-weight: bold;
+            box-shadow: 2px 2px 0 black;
+            min-width: 44px;
+            min-height: 36px;
+        }
+
+        .nav-btn:active {
+            background: black;
+            color: white;
+            box-shadow: none;
+            transform: translate(1px, 1px);
+        }
+
+        .window-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            scrollbar-width: thin;
+        }
+
+        .window-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .window-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-left: 1px solid #ddd;
+        }
+
+        .window-content::-webkit-scrollbar-thumb {
+            background: #888;
+            border: 1px solid white;
+        }
+
+        .habit-row {
+            display: flex;
+            border-bottom: 1px solid #ccc;
+            min-height: 56px;
+            touch-action: pan-y;
+        }
+
+        .habit-name-col {
+            width: 100px;
+            min-width: 100px;
+            max-width: 140px;
+            border-right: 2px solid black;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            background: #fafafa;
+            justify-content: space-between;
+            z-index: 10;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .habit-name-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: calc(100% - 32px);
+        }
+
+        .delete-btn {
+            font-size: 1rem;
+            padding: 8px;
+            color: #888;
+            min-width: 28px;
+            min-height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .delete-btn:hover, .delete-btn:active {
+            color: red;
+            background: #ffe0e0;
+        }
+
+        .days-container {
+            display: flex;
+            flex-grow: 1;
+            width: 100%;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .days-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .day-cell {
+            flex: 0 0 42px;
+            min-width: 42px;
+            max-width: 42px;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.7rem;
+            position: relative;
+        }
+
+        .day-cell:last-child {
+            border-right: none;
+        }
+
+        .day-num {
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        .day-name {
+            font-size: 0.55rem;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .day-cell.header {
+            background: #eee;
+            border-bottom: 2px solid black;
+        }
+
+        .day-cell.today {
+            background-color: #ddd;
+            border-bottom: 3px solid #666;
+        }
+
+        .day-cell.completed {
+            background: black;
+            color: white;
+        }
+
+        .day-cell.completed .day-name {
+            color: #ccc;
+        }
+
+        .footer-input {
+            border-top: 2px solid black;
+            padding: 10px;
+            display: flex;
+            background: #eee;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        #new-habit-input {
+            flex-grow: 1;
+            border: 2px solid black;
+            padding: 10px 12px;
+            font-family: inherit;
+            font-size: 1rem;
+            min-height: 44px;
+        }
+
+        #new-habit-input:focus {
+            outline: none;
+            background: white;
+            box-shadow: inset 2px 2px 0 black;
+        }
+
+        #status-bar {
+            font-size: 0.7rem;
+            text-align: center;
+            padding: 6px;
+            background: #ccc;
+            border-top: 1px solid black;
+            flex-shrink: 0;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .modal-box {
+            background: white;
+            border: 2px solid black;
+            box-shadow: 8px 8px 0 black;
+            padding: 20px;
+            width: 100%;
+            max-width: 320px;
+            text-align: center;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+            gap: 10px;
+        }
+
+        @media (max-width: 360px) {
+            .habit-name-col {
+                width: 80px;
+                min-width: 80px;
+                font-size: 0.75rem;
+            }
+            
+            .day-cell {
+                flex: 0 0 38px;
+                min-width: 38px;
+                max-width: 38px;
+            }
+            
+            .day-num {
+                font-size: 0.75rem;
+            }
+            
+            .day-name {
+                font-size: 0.5rem;
+            }
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 20px;
+            }
+            
+            .habit-name-col {
+                width: 130px;
+                min-width: 130px;
+            }
+            
+            .day-cell {
+                flex: 0 0 auto;
+                min-width: auto;
+                max-width: none;
+                flex-grow: 1;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+
+        /* PWA Install Prompt */
+        .install-prompt {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #333;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            z-index: 9999;
+        }
+        
+        .install-prompt button {
+            background: white;
+            color: black;
+            border: none;
+            padding: 8px 16px;
+            margin-left: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="window">
+        <div class="title-bar">
+            <div class="title-stripes"></div>
+            <div class="close-box" onclick="window.location.href='/'">X</div>
+            <span class="title-text" data-i18n="streak.title">Habit Tracker</span>
+            <div class="title-controls">
+                <button class="icon-btn" onclick="toggleFullScreen()" title="Full Screen">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                        stroke-linecap="square" stroke-linejoin="miter">
+                        <path class="icon-expand" d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1"></path>
+                        <path class="icon-contract" d="M21 9H15V3M21 3l-6 6M3 15h6v6M3 21l6-6"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="period-controls">
+            <button class="nav-btn" onclick="changeWeek(-1)">&lt;</button>
+            <span class="period-display" id="current-period-label">...</span>
+            <button class="nav-btn" onclick="changeWeek(1)">&gt;</button>
+        </div>
+
+        <div class="window-content" id="tracker-grid">
+        </div>
+
+        <div class="footer-input">
+            <input type="text" id="new-habit-input" placeholder="New Habit (e.g. Read)" onkeypress="handleEnter(event)"
+                data-i18n-placeholder="streak.placeholder.new" autocomplete="off">
+            <button class="nav-btn" onclick="addHabit()" data-i18n="streak.btn.add">Add</button>
+        </div>
+
+        <div id="status-bar">Local Mode • <span id="connection-status">Online</span></div>
+    </div>
+
+    <div id="delete-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 data-i18n="streak.modal.delete.title">Delete Habit?</h3>
+            <p data-i18n="streak.modal.delete.desc">Remove this habit and its history?</p>
+            <div class="modal-buttons">
+                <button class="nav-btn" onclick="confirmDelete()" data-i18n="common.delete">Delete</button>
+                <button class="nav-btn" onclick="closeModal()" data-i18n="common.cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA Install Prompt -->
+    <div id="install-prompt" class="install-prompt">
+        Add to Home Screen for offline access!
+        <button onclick="promptInstall()">Install</button>
+    </div>
+
+    <script>
+        // ========================================
+        // PWA Service Worker Registration
+        // ========================================
+        
+        let deferredPrompt = null;
+        const installPrompt = document.getElementById('install-prompt');
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then((registration) => {
+                        console.log('ServiceWorker registered:', registration.scope);
+                        
+                        // Check for updates
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // New content available
+                                    if (confirm('New version available! Reload to update?')) {
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        });
+                    })
+                    .catch((error) => {
+                        console.log('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+
+        // Handle Before Install Prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installPrompt.style.display = 'block';
+        });
+
+        // Handle App Installed
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA installed');
+            installPrompt.style.display = 'none';
+            deferredPrompt = null;
+        });
+
+        // Prompt Install Function
+        function promptInstall() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted install');
+                    }
+                    deferredPrompt = null;
+                    installPrompt.style.display = 'none';
+                });
+            }
+        }
+
+        // Online/Offline Status
+        function updateConnectionStatus() {
+            const statusEl = document.getElementById('connection-status');
+            if (navigator.onLine) {
+                statusEl.textContent = 'Online';
+                statusEl.style.color = 'green';
+            } else {
+                statusEl.textContent = 'Offline';
+                statusEl.style.color = 'red';
+            }
+        }
+
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+
+        // ========================================
+        // Original App Logic (with fallbacks for missing scripts)
+        // ========================================
+
+        let habits = [];
+        let history = {};
+        let currentStart = new Date();
+        let today = new Date();
+        let habitToDeleteId = null;
+
+        // Fallback functions for missing external scripts
+        window.rekindleGetZonedDate = null;
+        window.rekindleApplyWallpaper = null;
+        window.rekindleApplyDefaultFullscreen = null;
+        window.rekindleFormatWallDate = null;
+        window.rekindleFormatTime = null;
+        window.t = function(key) { return key; };
+
+        window.onload = () => {
+            updateConnectionStatus();
+            initCurrentWeek();
+            loadLocalData();
+        };
+
+        function escapeHTML(text) {
+            const div = document.createElement('div');
+            div.appendChild(document.createTextNode(text));
+            return div.innerHTML;
+        }
+
+        function initCurrentWeek() {
+            const day = currentStart.getDay();
+            const diff = currentStart.getDate() - day + (day === 0 ? -6 : 1);
+            currentStart.setDate(diff);
+        }
+
+        function loadLocalData() {
+            try {
+                habits = JSON.parse(localStorage.getItem('streak_habits')) || [];
+                history = JSON.parse(localStorage.getItem('streak_history')) || {};
+            } catch (e) {
+                habits = [];
+                history = {};
+            }
+            renderView();
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('streak_habits', JSON.stringify(habits));
+                localStorage.setItem('streak_history', JSON.stringify(history));
+            } catch (e) {
+                alert('Storage full! Delete some habits.');
+            }
+            renderView();
+        }
+
+        function changeWeek(delta) {
+            currentStart.setDate(currentStart.getDate() + (delta * 7));
+            renderView();
+        }
+
+        function renderView() {
+            const container = document.getElementById('tracker-grid');
+            container.innerHTML = '';
+
+            const weekEnd = new Date(currentStart);
+            weekEnd.setDate(currentStart.getDate() + 6);
+
+            const locale = document.documentElement.lang || 'en';
+            const startStr = currentStart.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+            const endStr = weekEnd.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+
+            document.getElementById('current-period-label').innerText = `${startStr} - ${endStr}`;
+
+            const headerRow = document.createElement('div');
+            headerRow.className = 'habit-row';
+
+            const headerName = document.createElement('div');
+            headerName.className = 'habit-name-col';
+            headerName.innerText = 'Habit';
+            headerRow.appendChild(headerName);
+
+            const headerDays = document.createElement('div');
+            headerDays.className = 'days-container';
+
+            for (let i = 0; i < 7; i++) {
+                const dayDate = new Date(currentStart);
+                dayDate.setDate(currentStart.getDate() + i);
+
+                const dayNum = dayDate.getDate();
+                const dayName = dayDate.toLocaleDateString(locale, { weekday: 'narrow' });
+
+                const cell = document.createElement('div');
+                cell.className = 'day-cell header';
+                if (isToday(dayDate)) cell.classList.add('today');
+
+                cell.innerHTML = `<span class="day-num">${dayNum}</span><span class="day-name">${dayName}</span>`;
+                headerDays.appendChild(cell);
+            }
+            headerRow.appendChild(headerDays);
+            container.appendChild(headerRow);
+
+            if (habits.length === 0) {
+                const empty = document.createElement('div');
+                empty.style.padding = "20px";
+                empty.style.textAlign = "center";
+                empty.style.fontStyle = "italic";
+                empty.innerText = 'No habits yet. Add one below!';
+                container.appendChild(empty);
+                return;
+            }
+
+            habits.forEach(habit => {
+                const row = document.createElement('div');
+                row.className = 'habit-row';
+
+                const nameCol = document.createElement('div');
+                nameCol.className = 'habit-name-col';
+                nameCol.innerHTML = `
+                    <span class="habit-name-text">${escapeHTML(habit.name)}</span>
+                    <span class="delete-btn" onclick="deleteHabit('${habit.id}')">×</span>
+                `;
+
+                const daysRow = document.createElement('div');
+                daysRow.className = 'days-container';
+
+                for (let i = 0; i < 7; i++) {
+                    const dayDate = new Date(currentStart);
+                    dayDate.setDate(currentStart.getDate() + i);
+
+                    const y = dayDate.getFullYear();
+                    const m = String(dayDate.getMonth() + 1).padStart(2, '0');
+                    const d = String(dayDate.getDate()).padStart(2, '0');
+                    const dateKey = `${y}-${m}-${d}`;
+                    const recordKey = `${habit.id}_${dateKey}`;
+
+                    const cell = document.createElement('div');
+                    cell.className = 'day-cell';
+
+                    if (history[recordKey]) cell.classList.add('completed');
+                    if (isToday(dayDate)) cell.classList.add('today');
+
+                    cell.onclick = () => toggleHabit(habit.id, dateKey);
+                    daysRow.appendChild(cell);
+                }
+
+                row.appendChild(nameCol);
+                row.appendChild(daysRow);
+                container.appendChild(row);
+            });
+        }
+
+        function isToday(date) {
+            return date.getDate() === today.getDate() &&
+                date.getMonth() === today.getMonth() &&
+                date.getFullYear() === today.getFullYear();
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') addHabit();
+        }
+
+        function addHabit() {
+            const input = document.getElementById('new-habit-input');
+            const name = input.value.trim();
+            if (!name) return;
+
+            habits.push({ id: Date.now().toString(), name: name });
+            saveData();
+            input.value = "";
+        }
+
+        function deleteHabit(id) {
+            habitToDeleteId = id;
+            document.getElementById('delete-modal').style.display = 'flex';
+        }
+
+        function confirmDelete() {
+            if (!habitToDeleteId) return;
+            const id = habitToDeleteId;
+
+            habits = habits.filter(h => h.id !== id);
+            Object.keys(history).forEach(k => {
+                if (k.startsWith(id)) delete history[k];
+            });
+            saveData();
+            closeModal();
+        }
+
+        function closeModal() {
+            document.getElementById('delete-modal').style.display = 'none';
+            habitToDeleteId = null;
+        }
+
+        function toggleHabit(habitId, dateKey) {
+            const recordKey = `${habitId}_${dateKey}`;
+            
+            if (history[recordKey]) {
+                delete history[recordKey];
+            } else {
+                history[recordKey] = true;
+            }
+            saveData();
+        }
+
+        function toggleFullScreen() {
+            document.querySelector('.window').classList.toggle('fullscreen');
+        }
+
+        // Handle back button to stay in app
+        window.history.pushState(null, null, window.location.href);
+        window.addEventListener('popstate', () => {
+            window.history.pushState(null, null, window.location.href);
+        });
+    </script>
+</body>
+
+</html>
